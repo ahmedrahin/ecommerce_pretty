@@ -1,0 +1,212 @@
+<x-default-layout>
+
+    @section('custom-css')
+    <link rel="stylesheet" href="{{ asset('assets/plugins/custom/datatables/datatables.bundle.css') }}">
+    @endsection
+
+    @section('title')
+     Stock In Report
+    @endsection
+
+    @section('breadcrumbs')
+        {{ Breadcrumbs::render('stockin') }}
+    @endsection
+
+
+    <div class="card">
+        <!--begin::Card header-->
+        <div class="card-header border-0 pt-6">
+            <!--begin::Card title-->
+            <div class="card-title">
+                <!--begin::Search-->
+                <div class="d-flex align-items-center position-relative my-1">
+                    {!! getIcon('magnifier', 'fs-3 position-absolute ms-5') !!}
+                    <input type="text" class="form-control form-control-solid w-250px ps-13"
+                        placeholder="Search product by name" id="mySearchInput" />
+                </div>
+                <!--end::Search-->
+            </div>
+
+            <div class="card-toolbar">
+                <div class="d-flex justify-content-end" data-kt-category-table-toolbar="base">
+
+                    <button type="button" class="btn btn-light-primary me-2" data-kt-menu-trigger="click"
+                        data-kt-menu-placement="bottom-end">
+                        <i class="ki-duotone ki-exit-down fs-2"><span class="path1"></span><span
+                                class="path2"></span></i>
+                        Export Report
+                    </button>
+
+                    <a type="button" class="btn btn-primary" href="{{ route('report.add.stock') }}">
+                        {!! getIcon('plus', 'fs-2', '', 'i') !!}
+                        Add New Stock
+                    </a>
+
+                    <div id="kt_datatable_example_export_menu"
+                        class="menu menu-sub menu-sub-dropdown menu-column menu-rounded menu-gray-600 menu-state-bg-light-primary fw-semibold fs-7 w-200px py-4"
+                        data-kt-menu="true">
+                        <!--begin::Menu item-->
+                        <div class="menu-item px-3">
+                            <a href="#" class="menu-link px-3" data-kt-export="copy">
+                                Copy to clipboard
+                            </a>
+                        </div>
+                        <div class="menu-item px-3">
+                            <a href="#" class="menu-link px-3" data-kt-export="excel">
+                                Export as Excel
+                            </a>
+                        </div>
+                        <div class="menu-item px-3">
+                            <a href="#" class="menu-link px-3" data-kt-export="csv">
+                                Export as CSV
+                            </a>
+                        </div>
+                        <div class="menu-item px-3">
+                            <a href="#" class="menu-link px-3" data-kt-export="pdf">
+                                Export as PDF
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <livewire:report.stock-in></livewire:report.stock-in>
+
+        <div class="card-body py-4">
+            <div class="table-responsive">
+                {{ $dataTable->table() }}
+            </div>
+        </div>
+    </div>
+
+     <div class="row" style="margin-top: 30px;">
+        <div class="col-md-3">
+            <a href="#" class="card bg-body hoverable card-xl-stretch mb-xl-8">
+                <!--begin::Body-->
+                <div class="card-body">
+                    <i class="ki-duotone ki-chart-simple text-primary fs-2x ms-n1">
+                        <span class="path1"></span>
+                        <span class="path2"></span>
+                        <span class="path3"></span>
+                        <span class="path4"></span>
+                    </i>
+                    <div class="text-gray-900 fw-bold fs-2 mb-2 mt-5">{{ format_price($data->sum('total_amount')) }}৳</div>
+                    <div class="fw-semibold text-gray-400">Total stock amount of {{ $month }} - {{ $year }}</div>
+                </div>
+                <!--end::Body-->
+            </a>
+        </div>
+
+        <div class="col-md-5">
+            <div class="card bgi-no-repeat bgi-position-y-top bgi-position-x-end statistics-widget-1 card-xl-stretch mb-xl-8">
+                <div class="card-header" style="min-height: 60px;">
+                    <a href="#" class="card-title text-muted text-hover-primary fs-4" style="font-weight: 400;"> Filter stock report by month</a>
+                </div>
+                <div class="card-body monthlyExpense">
+                    <div class="row">
+                        <div class="col-12">
+                            @php
+                                $currentMonth = date('n');
+                                $selectedYear = request('year', date('Y'));
+                                $currentYear = date('Y');
+                            @endphp
+
+                            @for ($i = 1; $i <= 12; $i++)
+                                @php
+                                    $monthName = \Carbon\Carbon::create($selectedYear, $i, 1)->format('M');
+                                    $disabled = ($selectedYear == $currentYear && $i > $currentMonth) ? 'disabled' : '';
+                                    $buttonClass = (strtolower(request('month')) == strtolower($monthName)) ? 'btn-success' : 'btn-primary';
+                                    $isCurrentMonth = (strtolower(date('M')) == strtolower($monthName) && request('month') == null) ? 'btn-success' : '';
+                                @endphp
+
+                                <a href="{{ route('report.stockin', ['month' => strtolower($monthName), 'year' => $selectedYear]) }}"
+                                class="btn {{ $buttonClass }} {{ $isCurrentMonth }} {{ $disabled }}">
+                                    {{ $monthName }}
+                                </a>
+                            @endfor
+                        </div>
+                    </div>
+                </div>
+                <!--end::Body-->
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card bgi-no-repeat bgi-position-y-top bgi-position-x-end statistics-widget-1 card-xl-stretch mb-xl-8">
+                <div class="card-header" style="min-height: 60px;">
+                    <a href="#" class="card-title text-muted text-hover-primary fs-4" style="font-weight: 400;"> Select Year</a>
+                </div>
+                <div class="card-body monthlyExpense">
+                    <div class="row">
+                        <div class="col-12">
+                            <div class="d-flex flex-wrap gap-3">
+                                @foreach($allYear as $availableYear)
+                                    <a href="{{ route('report.stockin', ['year' => $availableYear, 'month' => (Carbon\Carbon::now()->format('M'))]) }}"
+                                    class="btn mb-2 {{ request('year') == $availableYear ? 'btn-success text-white' : 'btn-primary' }}"
+                                    style="width: 45%; text-align: center;">
+                                        {{ $availableYear }}
+                                    </a>
+                                @endforeach
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!--end::Body-->
+            </div>
+
+        </div>
+    </div>
+
+    <!-- DataTables Buttons JS -->
+    @push('scripts')
+        <script src="{{ asset('assets/plugins/custom/datatables/datatables.bundle.js') }}"></script>
+        {{ $dataTable->scripts() }}
+
+        <script>
+            document.addEventListener('livewire:load', function () {
+                Livewire.on('info', function () {
+                    window.LaravelDataTables['stockin-table'].ajax.reload();
+                });
+            });
+
+            let table;
+
+            $(document).ready(function () {
+                // Initialize datatable
+                table = $('#stockin-table').DataTable();
+
+                // Global search input
+                document.getElementById('mySearchInput').addEventListener('keyup', function () {
+                    window.LaravelDataTables['stockin-table'].search(this.value).draw();
+                });
+
+                // Export buttons
+                $('[data-kt-export]').on('click', function (e) {
+                    e.preventDefault();
+
+                    const exportType = $(this).data('kt-export');
+                    switch (exportType) {
+                        case 'copy':
+                            table.button('.buttons-copy').trigger();
+                            break;
+                        case 'excel':
+                            table.button('.buttons-excel').trigger();
+                            break;
+                        case 'csv':
+                            table.button('.buttons-csv').trigger();
+                            break;
+                        case 'pdf':
+                            table.button('.buttons-pdf').trigger();
+                            break;
+                        default:
+                            console.error('Unknown export type:', exportType);
+                    }
+                });
+
+            });
+
+        </script>
+    @endpush
+
+</x-default-layout>
