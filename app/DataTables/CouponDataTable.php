@@ -36,7 +36,7 @@ class CouponDataTable extends DataTable
                 } else {
                     $icon = '<i class="ki-duotone ki-percentage fs-3"><span class="path1"></span><span class="path2"></span></i>';
                 }
-                return number_format($coupon->discount_amount,0) . ' ' . $icon;
+                return $coupon->discount_amount . ' ' . $icon;
             })
             ->editColumn('min_purchase_amount', function (Coupon $coupon) {
                 return (!is_null($coupon->min_purchase_amount)) ? $coupon->min_purchase_amount . 'tk' : '-';
@@ -78,7 +78,7 @@ class CouponDataTable extends DataTable
             })
             ->editColumn('order_amount', function ($coupon) {
                 $amount = Order::where('cupon_code', $coupon->code)->sum('coupon_discount');
-               return '$' . number_format($amount,2);
+               return '৳' . number_format($amount,2);
             })
             ->addColumn('active', function (Coupon $coupon) {
                 return view('pages.apps.coupon.columns._active_status', compact('coupon'));

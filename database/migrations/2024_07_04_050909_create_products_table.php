@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('products', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('user_id')->nullable()->constrained()->onDelete('set null');
+            $table->string('user_id')->nullable();
             $table->string('name');
             $table->string('slug')->nullable();
             $table->string('model')->nullable();
@@ -43,7 +43,6 @@ return new class extends Migration
             $table->boolean('is_new')->default(2)->comment('1=yes or 2=no');
             $table->boolean('is_featured')->default(2)->comment('1=Yes, 2=No');
             $table->boolean('pre_order')->default(2)->comment('1=Yes, 2=No');
-            $table->string('badge')->nullable();
             $table->boolean('stock_out')->default(0)->comment('1=Yes, 0=No');
             $table->longText('key_features')->nullable();
             $table->softDeletes();

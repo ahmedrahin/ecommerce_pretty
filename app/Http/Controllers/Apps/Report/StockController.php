@@ -9,7 +9,7 @@ use App\DataTables\Report\LowStockDataTable;
 use App\DataTables\Report\StockInDataTable;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
-use App\Models\ProductStockManage;
+use App\Models\{ProductStockManage, ProductStock};
 use App\Models\Product;
 
 class StockController extends Controller
@@ -51,37 +51,97 @@ class StockController extends Controller
          return view('pages.apps.report.stock.add-stock');
     }
 
-    public function storeStock(Request $request){
-         $request->validate([
-            'product_id' => 'required',
-            'date' => 'required',
-            'quantity' => 'required|numeric|min:1',
-            'wholesale_price' => 'required|numeric|min:1',
+    public function storeStock(Request $request)
+    {
+         
+        $hasVariants = !empty($request->variants);
+
+        $request->validate([
+            'product_id'          => 'required|exists:products,id',
+            'date'                => 'required|date',
+            'wholesale_price'     => 'nullable|numeric|min:0',
+            'variants'            => $hasVariants ? 'required|array|min:1' : 'nullable',
+            'variants.*.id'       => $hasVariants ? 'required|exists:product_stocks,id' : 'nullable',
+            'variants.*.quantity' => $hasVariants ? 'required|numeric|min:1' : 'nullable',
+            'quantity'            => !$hasVariants ? 'required|numeric|min:1' : 'nullable',
         ], [
-            'date.required' => 'Select a date',
-            'product_id.required' => 'Select a product',
+            'quantity.required'            => 'Quantity is required',
+            'quantity.min'                 => 'Quantity must be greater than 0',
+            'variants.required'            => 'Select at least one variation',
+            'variants.min'                 => 'Select at least one variation',
+            'variants.*.quantity.required' => 'Quantity is required for selected variation',
+            'variants.*.quantity.min'      => 'Quantity must be greater than 0',
+            'variants.*.id.exists'         => 'Selected variation is invalid',
+            'date.required'                => 'Select a date',
+            'product_id.required'          => 'Select a product',
         ]);
 
-        $product = Product::find($request->product_id);
-        $data = [
-            'product_id'    => $request->product_id,
-            'quantity'      => $request->quantity,
-            'stocked_at'    => $request->date ?? now(),
-            'product_price' => $product->base_price ?? 0,
-            'wholesale_price' => $request->wholesale_price,
-            'total_amount' => $request->wholesale_price * $request->quantity,
-            'note'          => $request->note,
-            'stock'          => 'stock_in',
-        ];
+        $product = Product::findOrFail($request->product_id);
 
-        ProductStockManage::create($data);
-        $product->increment('quantity', $data['quantity']);
+        DB::beginTransaction();
+        try {
+            $wholesalePrice = $request->wholesale_price ? (float) $request->wholesale_price : (float) $product->base_price;
+            if ($hasVariants) {
+                foreach ($request->variants as $variantData) {
+                    $productStock = \App\Models\ProductStock::with(
+                        'attributeOptions.attribute',
+                        'attributeOptions.attributeValue'
+                    )->findOrFail($variantData['id']);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Product stock in successfully'
-        ]);
+                    $variationLabel = $productStock->attributeOptions->map(function ($opt) {
+                        return $opt->attribute->attr_name . ': ' . $opt->attributeValue->attr_value;
+                    })->implode(' / ');
 
+                    ProductStockManage::create([
+                        'product_id'       => $product->id,
+                        'product_stock_id' => $productStock->id,
+                        'variation_label'  => $variationLabel,
+                        'quantity'         => $variantData['quantity'],
+                        'stocked_at'       => $request->date,
+                        'product_price'    => $product->base_price ?? 0,
+                        'wholesale_price'  => $wholesalePrice,
+                        'total_amount'     => ($wholesalePrice ?? 0) * $variantData['quantity'],
+                        'stock'            => 'stock_in',
+                    ]);
+
+                    $productStock->increment('quantity', $variantData['quantity']);
+                }
+
+                $product->update([
+                    'quantity' => \App\Models\ProductStock::where('product_id', $product->id)->sum('quantity')
+                ]);
+
+            } else {
+                ProductStockManage::create([
+                    'product_id'       => $product->id,
+                    'product_stock_id' => null,
+                    'variation_label'  => null,
+                    'quantity'         => $request->quantity,
+                    'stocked_at'       => $request->date,
+                    'product_price'    => $product->base_price ?? 0,
+                    'wholesale_price'  => $wholesalePrice,
+                    'total_amount'     => ($wholesalePrice ?? 0) * $request->quantity,
+                    'stock'            => 'stock_in',
+                ]);
+
+                $product->increment('quantity', $request->quantity);
+            }
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Stock added successfully'
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Something went wrong: ' . $e->getMessage()
+            ], 500);
+        }
     }
 
 }

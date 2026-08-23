@@ -30,7 +30,21 @@
                             @error('name') <span class="text-danger">{{ $message }}</span> @enderror
                         </div>
 
-            
+                         <div class="fv-row mb-7">
+                            <label class="fw-semibold fs-6 mb-2">Category</label>
+                            <select name="category_id" wire:model="category_id" id="category_id"
+                                class="form-select form-select-solid  @error('category_id') is_valid @enderror" data-placeholder="Select a category">
+                                <option></option>
+                                @foreach($categories as $category)
+                                <option value="{{ $category->id }}">{{ $category->name }}</option>
+                                @endforeach
+                            </select>
+                            @error('category_id')
+                            <span class="text-danger">{{ $message }}</span>
+                            @enderror
+                        </div>
+
+
                         <!--begin::Input group-->
                         <div class="fv-row mb-7">
                             <!--begin::Label-->

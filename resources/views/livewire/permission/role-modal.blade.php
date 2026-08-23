@@ -1,6 +1,6 @@
 <div class="modal fade" id="kt_modal_update_role" tabindex="-1" aria-hidden="true" wire:ignore.self>
     <!--begin::Modal dialog-->
-    <div class="modal-dialog modal-dialog-centered mw-750px">
+    <div class="modal-dialog modal-dialog-centered mw-1000px">
         <!--begin::Modal content-->
         <div class="modal-content">
             <!--begin::Modal header-->

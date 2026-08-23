@@ -63,7 +63,7 @@
                                     <span class="fs-5">
                                         @if ($order->shippingMethod)
                                             @if ($order->shippingMethod->base_id)
-                                                Inside {{ $order->shippingMethod->District->name }}
+                                                Inside {{ $order->shippingMethod->District->name ?? 'N/A' }}
                                             @else
                                                 {{ $order->shippingMethod->provider_name }}
                                             @endif
@@ -120,8 +120,9 @@
                                                         <div class="d-flex align-items-center">
                                                             <a href="{{ route('product-management.show', $item->product->id) }}"
                                                                 class="symbol symbol-50px">
-                                                                <span class="symbol-label"
-                                                                    style="background-image:url({{ asset($item->product->thumb_image) }});"></span>
+                                                                <span class="symbol-label">
+                                                                    <img src="{{ asset($item->product->thumb_image) }}" class="w-100" />
+                                                                </span>
                                                             </a>
 
                                                             <div class="ms-5">
@@ -144,9 +145,9 @@
                                                     </td>
                                                     <td class="text-center">{{ $item->product->sku_code }}</td>
                                                     <td class="text-center">{{ $item->quantity }}</td>
-                                                    <td class="text-center">${{ format_price($item->price) }}</td>
+                                                    <td class="text-center">{{ format_price($item->price) }}৳</td>
                                                     <td class="text-end">
-                                                        {{ format_price($item->price * $item->quantity) }}
+                                                        {{ format_price($item->price * $item->quantity) }}৳
                                                     </td>
                                                 </tr>
                                             @endforeach
@@ -163,7 +164,7 @@
 
                                             <tr>
                                                 <td colspan="4" class="text-end">Subtotal</td>
-                                                <td class="text-end">${{ format_price($subtotal) }}</td>
+                                                <td class="text-end">{{ format_price($subtotal) }}৳</td>
                                             </tr>
 
                                             @php
@@ -177,24 +178,19 @@
                                                     ({{ round($discountPercentage) }}%)
                                                 </td>
                                                 <td class="text-end">
-                                                    ${{ format_price($discount) }}
+                                                    {{ format_price($discount) }}৳
                                                 </td>
                                             </tr>
 
 
                                             <tr>
                                                 <td colspan="4" class="text-end">Shipping Rate</td>
-                                                <td class="text-end">${{ format_price($order->shipping_cost) }}</td>
+                                                <td class="text-end">{{ format_price($order->shipping_cost) }}৳</td>
                                             </tr>
                                             <tr>
                                                 <td colspan="4" class="fs-3 text-dark text-end">Grand Total</td>
                                                 <td class="text-dark fs-3 fw-bolder text-end">
-                                                    ${{ format_price($order->grand_total) }}</td>
-                                            </tr>
-                                            <tr>
-                                            <td colspan="4" class="fs-3 text-success text-end">Paid</td>
-                                                <td class="text-dark fs-3 fw-bolder text-end">
-                                                    ${{ format_price($order->paid_amount) }}</td>
+                                                    {{ format_price($order->grand_total) }}৳</td>
                                             </tr>
                                         </tbody>
                                     </table>

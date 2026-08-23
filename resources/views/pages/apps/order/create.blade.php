@@ -323,7 +323,7 @@
                         // cart-items
                         $('#cart-items').html('<span class="w-100 text-muted">Select one or more products from the list below by ticking the checkbox.</span>');
                         $('#kt_ecommerce_edit_order_total_qty').html('0');
-                        $('#kt_ecommerce_edit_order_total_price').html('0.00');
+                        $('#kt_ecommerce_edit_order_total_price').html('0.00৳');
                         $('input[type="checkbox"]:checked').prop('checked', false);
                     },
                     error: function(xhr) {

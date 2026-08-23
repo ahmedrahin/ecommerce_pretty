@@ -11,7 +11,7 @@
         @endif
     </a>
 
-    <a class="position-relative me-4 btn-notification" href="{{ route('question.product') }}">
+    {{-- <a class="position-relative me-4 btn-notification" href="{{ route('question.product') }}">
         <i class="ki-duotone ki-sms fs-4">
             <span class="path1"></span>
             <span class="path2"></span>
@@ -20,7 +20,7 @@
         <span class="position-absolute top-0 start-100 translate-middle  badge badge-circle badge-primary">{{ $question
             }}</span>
         @endif
-    </a>
+    </a> --}}
 
     <a class="position-relative me-4b btn-notification" href="{{ route('order-management.order.index') }}">
         <i class="ki-duotone ki-basket fs-4">

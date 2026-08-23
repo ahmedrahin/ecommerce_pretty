@@ -199,7 +199,7 @@
                                 <div class="py-1">
                                     <span class="text-dark fs-1 fw-bold me-2">{{ round($percent) }}%</span>
                                     <span class="fw-semibold text-muted fs-7">
-                                        Total {{ $orders }} orders / ${{ number_format($amount, 0) }}
+                                        Total {{ $orders }} orders / {{ number_format($amount, 0) }}৳
                                     </span>
                                 </div>
                                 <div class="progress h-7px bg-{{ $color }} bg-opacity-50 mt-7">

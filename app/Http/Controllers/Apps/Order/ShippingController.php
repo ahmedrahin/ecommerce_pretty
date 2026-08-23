@@ -10,7 +10,7 @@ use App\DataTables\StateDataTable;
 class ShippingController extends Controller
 {
     // district list
-    public function state(DistrictsDataTable $dataTable){
+    public function district(DistrictsDataTable $dataTable){
         return $dataTable->render('pages.apps.shipping.district.list');
     }
 

@@ -54,7 +54,7 @@ class UserDataTable extends DataTable
                     $formattedTotal = number_format($totalSpent, 2);
                 }
 
-                return '$' . $formattedTotal;
+                return $formattedTotal  . '৳';
             })
             ->addColumn('action', function (User $user) {
                 return view('pages.apps.user-management.user.columns._actions', compact('user'));

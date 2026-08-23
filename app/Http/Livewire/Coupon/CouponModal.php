@@ -20,6 +20,8 @@ class CouponModal extends Component
     public $used;
     public $start_at;
     public $expire_date;
+    public $min_qty;
+    public $max_qty;
     public $categories = [];
     public $category_ids = [];
 
@@ -39,26 +41,31 @@ class CouponModal extends Component
 
     public function mount()
     {
-        $this->categories = Category::where('status',1)->get();
-        // Fetch all coupons to check and update their status if needed
-        $coupons = Coupon::all();
+        $this->categories = Category::where('status', 1)->get();
 
-        foreach ($coupons as $coupon) {
-            // Check if the coupon has expired or reached its usage limit
-            $isExpired = $coupon->expire_date && Carbon::parse($coupon->expire_date)->isPast();
-            $isUsageLimitReached = $coupon->usage_limit && $coupon->used >= $coupon->usage_limit;
+        // Efficiently update expired coupons to status = 2
+        Coupon::where('status', '!=', 2)
+            ->whereNotNull('expire_date')
+            ->where('expire_date', '<', Carbon::now())
+            ->update(['status' => 2]);
 
-            // Update the status based on conditions
-            if ($isExpired || $isUsageLimitReached) {
-                $coupon->status = 2;
-            } else {
-                if( $coupon->status != 0 ){
-                    $coupon->status = 1;
-                }
-            }
+        // Efficiently update coupons with reached usage limit to status = 2
+        Coupon::where('status', '!=', 2)
+            ->whereNotNull('usage_limit')
+            ->whereColumn('used', '>=', 'usage_limit')
+            ->update(['status' => 2]);
 
-            $coupon->save();
-        }
+        // Efficiently update coupons that are no longer expired or limit reached back to status = 1
+        Coupon::where('status', 2)
+            ->where(function ($query) {
+                $query->whereNull('expire_date')
+                    ->orWhere('expire_date', '>=', Carbon::now());
+            })
+            ->where(function ($query) {
+                $query->whereNull('usage_limit')
+                    ->orWhereColumn('used', '<', 'usage_limit');
+            })
+            ->update(['status' => 1]);
     }
 
     public function submit()
@@ -73,6 +80,8 @@ class CouponModal extends Component
             'used'                  => 'nullable|numeric|min:1',
             'start_at'              => 'required|date',
             'expire_date'           => 'nullable|after:start_at',
+            'min_qty'               => 'nullable|integer|min:1',
+            'max_qty'               => 'nullable|integer|min:1',
         ];
 
         // Conditional rule for discount amount if type is percentage
@@ -117,6 +126,8 @@ class CouponModal extends Component
             'used'                => $this->used ?? null,
             'start_at'            => $this->start_at,
             'expire_date'         => $this->expire_date ?? null,
+            'min_qty'             => !empty($this->min_qty) ? $this->min_qty : null,
+            'max_qty'             => !empty($this->max_qty) ? $this->max_qty : null,
         ];
 
         // Create the coupon
@@ -146,6 +157,8 @@ class CouponModal extends Component
         $this->used = $coupon->used;
         $this->start_at = $coupon->start_at;
         $this->expire_date = $coupon->expire_date ?? null;
+        $this->min_qty = $coupon->min_qty;
+        $this->max_qty = $coupon->max_qty;
         $this->category_ids = $coupon->categories()->pluck('categories.id')->toArray();
 
     }
@@ -165,6 +178,8 @@ class CouponModal extends Component
         $coupon->used = $this->used ?? null;
         $coupon->start_at = $this->start_at;
         $coupon->expire_date = $this->expire_date !== '' ? $this->expire_date : null;
+        $coupon->min_qty = !empty($this->min_qty) ? $this->min_qty : null;
+        $coupon->max_qty = !empty($this->max_qty) ? $this->max_qty : null;
 
         // sync selected categories
         $coupon->categories()->sync($this->category_ids);
@@ -211,7 +226,7 @@ class CouponModal extends Component
     {
         // Reset edit mode and form fields
         $this->edit_mode = false;
-        $this->reset(['code', 'expire_date', 'start_at', 'used', 'usage_limit', 'min_purchase_amount', 'discount_amount', 'discount_type', 'category_ids']);
+        $this->reset(['code', 'expire_date', 'start_at', 'used', 'usage_limit', 'min_purchase_amount', 'discount_amount', 'discount_type', 'category_ids', 'min_qty', 'max_qty']);
     }
 
     // Refresh the cache

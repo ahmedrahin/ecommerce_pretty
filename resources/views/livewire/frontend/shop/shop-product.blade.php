@@ -1,42 +1,18 @@
-<ul class="product-action_list">
+<div class="actions">
     @if($product->productStock->count() > 0)
-        <li>
-            <a href="{{ route('product-details', $product->slug) }}" class="hover-tooltip tooltip-left box-icon">
-                <span class="icon icon-shopping-cart-simple"></span>
-                <span class="tooltip">Buy Now</span>
-            </a>
-        </li>
+        <a class="btn-options" href="{{ route('product-details', $product->slug) }}">
+            <i class="bi bi-sliders2"></i> Select options
+        </a>
     @else
-        @if($product->quantity > 0)
-            <li>
-                <a href="javascript:void(0);" 
-                   class="hover-tooltip tooltip-left box-icon" 
-                   wire:click="addToCart">
-                    <span class="icon icon-shopping-cart-simple"></span>
-                    <span class="tooltip">Add to Cart</span>
-                </a>
-            </li>
+        @if($product->stock_out == 1 || $product->quantity == 0)
+            <button class="btn-outofstock" type="button" disabled
+                onclick="message('error', 'Product is not available!')">
+                <i class="bi bi-x-circle-fill"></i> Out of stock
+            </button>
         @else
-            <li>
-                <a href="javascript:void(0);" class="hover-tooltip tooltip-left box-icon disabled" onclick="message('error', 'Product is not available!')"">
-                    <span class="bi-exclamation-triangle"></span>
-                    <span class="tooltip">Out of Stock</span>
-                </a>
-            </li>
+            <button class="btn-cart" type="button" wire:click="addToCart">
+                <i class="bi bi-cart-plus"></i> Add to cart
+            </button>
         @endif
     @endif
-    
-    <li>
-        <a href="javascript:void(0);" 
-           class="hover-tooltip tooltip-left box-icon" 
-           wire:click="toggleWishlist({{ $productId }})">
-            @if($isInWishlist)
-                <span class="icon icon-trash" style="color:#111;"></span>
-                <span class="tooltip">Remove Wishlist</span>
-            @else
-                <span class="icon icon-heart"></span>
-                <span class="tooltip">Add to Wishlist</span>
-            @endif
-        </a>
-    </li>
-</ul>
+</div>

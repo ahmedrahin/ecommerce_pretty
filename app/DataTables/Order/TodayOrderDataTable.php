@@ -65,7 +65,7 @@ class TodayOrderDataTable extends DataTable
             })
 
             ->editColumn('grand_total', function (Order $order) {
-                return '$' . format_price($order->grand_total);
+                return format_price($order->grand_total) . '৳';
             })
             ->editColumn('qty', function (Order $order) {
                 return $order->orderItems->sum('quantity');

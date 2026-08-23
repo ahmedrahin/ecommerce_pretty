@@ -77,11 +77,14 @@
                         <a class="nav-link text-active-primary pb-4" data-bs-toggle="tab"
                             href="#kt_ecommerce_add_product_advanced">Advanced</a>
                     </li>
-                    
-                    <li class="nav-item">
+                    {{-- <li class="nav-item">
+                        <a class="nav-link text-active-primary pb-4" data-bs-toggle="tab"
+                            href="#specification">Specifications</a>
+                    </li>
+                     <li class="nav-item">
                         <a class="nav-link text-active-primary pb-4" data-bs-toggle="tab"
                             href="#filter">Category Filter</a>
-                    </li>
+                    </li> --}}
                 </ul>
                 <div class="tab-content">
                     @include('pages.apps.product.components.general-Information')
@@ -134,6 +137,13 @@
 
                     var formData = new FormData(this);
                     let discount_option = $('#discount_type').val();
+
+                    // Append gallery images from our JS store
+                    var galleryFiles = window.galleryFilesStore || [];
+                    galleryFiles.forEach(function (file) {
+                        formData.append('gallery_image[]', file);
+                    });    
+
                     $.ajax({
                         url: '{{ route("product-management.store") }}',
                         type: 'POST',
@@ -171,27 +181,19 @@
                             $('#errors-msgs').css('display', 'none')
 
                             // Replace alert with SweetAlert
-                           Swal.fire({
+                            Swal.fire({
                                 text: response.message,
                                 icon: 'success',
                                 buttonsStyling: false,
-                                confirmButtonText: 'View Details',
+                                confirmButtonText: 'OK',
                                 customClass: {
                                     confirmButton: 'btn btn-primary'
                                 }
-                            }).then((result) => {
-                                if (result.isConfirmed) {
-                                    window.location.href = "{{ route('product-management.show', ':id') }}".replace(':id', response.product);
-                                }
                             });
 
-
                             var productId = response.product;
-                            Livewire.emit('save', productId);
-
-                            setTimeout(() => {
-                                $('#saveGellaryImage').click();
-                            }, 200);
+                            
+                            window.resetGalleryImages();
 
                             // Optionally, reinitialize the repeater if needed
                             // initFormRepeater();

@@ -11,8 +11,9 @@ use App\Models\Attribute;
 use App\Models\AttributeValue;
 use App\Models\Subcategory;
 use App\Models\Subsubcategory;
+use App\Models\GalleryImage;
 use App\Models\ProductSpecification;
-use App\Models\ProductStock;
+use App\Models\{ProductStockManage,ProductStock};
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\Storage;
@@ -20,14 +21,21 @@ use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\Validator;
 use App\Models\FilterOption;
 use App\Models\ProductFilterValue;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class ProductEditController extends Controller
 {
     //edit product
     public function edit(string $id)
     {
-        // Retrieve the product with the given ID and its associated tags
-        $product = Product::with('tags', 'specifications', 'filterValues')->find($id);
+        $product = Product::with([
+            'tags',
+            'specifications',
+            'filterValues',
+            'subcategories',
+            'subsubcategories'
+        ])->find($id);
 
         // Retrieve other necessary data
         $brands = Brand::orderBy('name')->get();
@@ -38,126 +46,160 @@ class ProductEditController extends Controller
         $tags = Tag::distinct()->pluck('name')->toArray();
         $productStocks = $product->productStock()->get();
 
+        // Get subcategories for the selected category
+        $subcategories = Subcategory::where('category_id', $product->category_id)
+            ->where('status', 1)
+            ->orderBy('name')
+            ->get();
+
+        // Get subsubcategories for the selected subcategories
+        $selectedSubcategoryIds = $product->subcategories->pluck('id')->toArray();
+        $subsubcategories = Subsubcategory::whereIn('subcategory_id', $selectedSubcategoryIds)
+            ->where('status', 1)
+            ->orderBy('name')
+            ->get();
+
         $filters = FilterOption::orWhereDoesntHave('categories')
             ->with('values')
             ->get();
 
         // Return the view with the necessary data
-        return view('pages.apps.product.edit.edit', compact('brands', 'categories', 'attributes', 'attribute_values', 'tags', 'tagItem', 'product', 'productStocks', 'filters'));
+        return view('pages.apps.product.edit.edit', compact(
+            'brands',
+            'categories',
+            'subcategories',
+            'subsubcategories',
+            'attributes',
+            'attribute_values',
+            'tags',
+            'tagItem',
+            'product',
+            'productStocks',
+            'filters'
+        ));
     }
+
 
     public function update(Request $request, string $id)
     {
-        // Find the product
         $product = Product::findOrFail($id);
+        $oldBasePrice  = $product->base_price;
+        $oldOfferPrice = $product->offer_price;
 
-        if (!empty($product)) {
+        // Validate the request data
+        $rules = [
+            'name'                                => 'required|string',
+            'brand_id'                            => 'nullable|exists:brands,id',
+            'category_id'                         => 'required|exists:categories,id',
+            'subcategory_id'                      => 'nullable|array',
+            'subcategory_id.*'                    => 'exists:subcategories,id',
+            'subsubcategory_id'                   => 'nullable|array',
+            'subsubcategory_id.*'                 => 'exists:subsubcategories,id',
+            'sku_code'                            => 'nullable|string|max:255',
+            'quantity'                            => 'required|integer',
+            'status'                              => 'required|in:1,2,3,0',
+            'base_price'                          => 'required|numeric',
+            'thumb_image'                         => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
+            'back_image'                          => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
+            'gallery_image'                       => 'nullable|array|max:10',
+            'gallery_image.*'                     => 'image|mimes:jpg,jpeg,png,webp|max:1536',
+            'remove_gallery_ids'                  => 'nullable|array',
+            'remove_gallery_ids.*'                => 'integer|exists:gallery_images,id',
+            'discount_option'                     => 'nullable|in:1,2,3',
+            'discount_percentage_or_flat_amount'  => 'nullable|numeric|min:0',
+            'publish_at'                          => 'nullable|date',
+        ];
 
-            // Validate the request data
-            $rules = [
-                'name' => 'required|string',
-                'brand_id' => 'nullable|exists:brands,id',
-                'category_id' => 'required|exists:categories,id',
-                'sku_code' => 'nullable|string|max:255',
-                'quantity' => 'required|integer',
-                'status' => 'required|boolean',
-                'base_price' => 'required|numeric',
-                'thumb_image' => 'nullable|image',
-                'back_image' => 'nullable|image',
-                'gallery_image.*' => 'nullable|image',
-                'discount_option' => 'nullable|in:1,2,3',
-                'discount_percentage_or_flat_amount' => 'nullable|numeric|min:0',
-                'status' => 'required|in:1,2,3,0',
-                'publish_at' => 'nullable|date',
-                // 'expire_date'               => 'nullable|date|after_or_equal:now',
+        // Conditionally require discount amount
+        if ($request->has('discount_option') && $request->discount_option != 1) {
+            $rules['discount_percentage_or_flat_amount'] = 'required|numeric|min:1';
+        }
 
-            ];
+        $messages = [
+            'discount_percentage_or_flat_amount.required' => 'The discount amount is required when a discount option is selected.',
+            'discount_percentage_or_flat_amount.numeric'  => 'The discount amount must be a number.',
+            'discount_percentage_or_flat_amount.min'      => 'The discount amount must be at least 1.',
+            'publish_at.required'                         => 'The publish date is required when scheduling the product.',
+            'publish_at.date'                             => 'The publish date must be a valid date.',
+            'publish_at.after_or_equal'                   => 'The publish date must be a current or future time.',
+            'expire_date.after_or_equal'                  => 'The expiry date must be a current or future time.',
+            'thumb_image.required'                        => 'Select a thumbnail image',
+            'category_id.required'                        => 'Category is required',
+            'subcategory_id.*.exists'                     => 'Selected subcategory does not exist',
+            'subsubcategory_id.*.exists'                  => 'Selected subsubcategory does not exist',
+        ];
 
-            // Conditionally require the discount_percentage_or_flat_amount field
-            if ($request->has('discount_option') && $request->discount_option != 1) {
-                $rules['discount_percentage_or_flat_amount'] = 'required|numeric|min:1';
-            }
+        $validated = $request->validate($rules, $messages);
 
-            // Custom validation messages
-            $messages = [
-                'discount_percentage_or_flat_amount.required' => 'The discount amount is required when a discount option is selected.',
-                'discount_percentage_or_flat_amount.numeric' => 'The discount amount must be a number.',
-                'discount_percentage_or_flat_amount.min' => 'The discount amount must be at least 1.',
-                'publish_at.required' => 'The publish date is required when scheduling the product.',
-                'publish_at.date' => 'The publish date must be a valid date.',
-                'publish_at.after_or_equal' => 'The publish date must be a current or future time.',
-                'expire_date.after_or_equal' => 'The expiry date must be a current or future time.',
-                'thumb_image.required' => 'Select a thumbnail image'
-            ];
+        // Discount check (before transaction)
+        $basePrice    = $validated['base_price'];
+        $discountData = $this->calculateDiscount($request, $basePrice);
 
-            // Validate the request data
-            $validated = $request->validate($rules, $messages);
+        if ($discountData['discount_amount'] > $basePrice) {
+            return response()->json([
+                'errors' => [
+                    'discount_percentage_or_flat_amount' => ['Discount amount cannot exceed the base price.']
+                ]
+            ], 422);
+        }
 
-            $basePrice = $validated['base_price'];
-            $discountData = $this->calculateDiscount($request, $basePrice);
+        DB::beginTransaction();
 
-            // Check if the discount amount exceeds the base price
-            if ($discountData['discount_amount'] > $basePrice) {
-                return response()->json([
-                    'errors' => [
-                        'discount_percentage_or_flat_amount' => ['Discount amount cannot exceed the base price.']
-                    ]
-                ], 422);
-            }
-
-            // Custom validation for variations' quantity based on attributes
-            $errors = [];
-
-            if (!empty($errors)) {
-                return response()->json(['errors' => $errors], 422);
-            }
-
-            // update product data
-            $data = $this->prepareProductData($validated, $request);
-
-            // update product thumbnal
+        try {
+            // ── Product core data ──────────────────────────────────────────────────
+            $data      = $this->prepareProductData($validated, $request);
             $imageData = $this->handleFileUploads($request, $product);
 
-            // update product
-            $product->update(array_merge($data, $imageData));
+            // many-to-many fields products table এ নেই — remove
+            unset($data['subcategory_id']);
+            unset($data['subsubcategory_id']);
 
-            // Handle tags if provided
+            $product->update(array_merge($data, $imageData));
+            $product->refresh();
+
+            // ── Subcategories sync ─────────────────────────────────────────────────
+            $subcategoryIds = array_map('intval', $request->input('subcategory_id', []));
+            $product->subcategories()->sync($subcategoryIds);
+
+            // ── Subsubcategories sync ──────────────────────────────────────────────
+            $subsubcategoryIds = array_map('intval', $request->input('subsubcategory_id', []));
+            $product->subsubcategories()->sync($subsubcategoryIds);
+
+            // ── Tags ───────────────────────────────────────────────────────────────
             $this->storeTags($request, $product);
 
-            // In your update controller
-            $existingSpecIds = ProductSpecification::where('product_id', $product->id)->pluck('id')->toArray();
-
+            // ── Specifications ─────────────────────────────────────────────────────
+            $existingSpecIds = ProductSpecification::where('product_id', $product->id)
+                ->pluck('id')
+                ->toArray();
             $newSpecIds = [];
 
             if ($request->filled('spec_group')) {
                 foreach ($request->spec_group as $gIndex => $groupName) {
-                    if (empty($groupName))
-                        continue;
+                    if (empty($groupName)) continue;
 
                     if (!empty($request->spec_name[$gIndex])) {
                         foreach ($request->spec_name[$gIndex] as $i => $specName) {
                             $specValue = $request->spec_value[$gIndex][$i] ?? null;
-                            $specId = $request->spec_id[$gIndex][$i] ?? null; // hidden input in form
+                            $specId    = $request->spec_id[$gIndex][$i] ?? null;
 
                             if ($specName || $specValue) {
                                 if ($specId) {
-                                    // update existing
                                     $spec = ProductSpecification::find($specId);
                                     if ($spec) {
                                         $spec->update([
                                             'group' => $groupName,
-                                            'name' => $specName,
+                                            'name'  => $specName,
                                             'value' => $specValue,
                                         ]);
                                         $newSpecIds[] = $spec->id;
                                     }
                                 } else {
-                                    // create new
                                     $spec = ProductSpecification::create([
                                         'product_id' => $product->id,
-                                        'group' => $groupName,
-                                        'name' => $specName,
-                                        'value' => $specValue,
+                                        'group'      => $groupName,
+                                        'name'       => $specName,
+                                        'value'      => $specValue,
                                     ]);
                                     $newSpecIds[] = $spec->id;
                                 }
@@ -167,14 +209,15 @@ class ProductEditController extends Controller
                 }
             }
 
-            // delete removed specs
+            // Delete removed specs
             $toDelete = array_diff($existingSpecIds, $newSpecIds);
-            ProductSpecification::whereIn('id', $toDelete)->delete();
+            if (!empty($toDelete)) {
+                ProductSpecification::whereIn('id', $toDelete)->delete();
+            }
 
-            // category filtering
-            $filters = $request->input('filters', []);
+            // ── Filters sync ───────────────────────────────────────────────────────
+            $filters  = $request->input('filters', []);
             $syncData = [];
-
             foreach ($filters as $filterId => $values) {
                 foreach ($values as $valueId) {
                     $syncData[$valueId] = ['filter_option_id' => $filterId];
@@ -182,43 +225,93 @@ class ProductEditController extends Controller
             }
             $product->filterValues()->sync($syncData);
 
-            // variation handle
-            $this->updateProductVariations($request, $product);
+            // ── Variations ─────────────────────────────────────────────────────────
+            if ($request->has('variations')) {
+                $this->updateProductVariations($request, $product, $oldBasePrice, $oldOfferPrice);
+            }
 
-            session::flash('success', 'The product updated successfully');
+            // ── Gallery: delete removed existing images ────────────────────────────
+            if ($request->has('remove_gallery_ids')) {
+                $removeIds = array_filter((array) $request->remove_gallery_ids);
+                if (!empty($removeIds)) {
+                    $imagesToDelete = GalleryImage::whereIn('id', $removeIds)
+                        ->where('product_id', $product->id)
+                        ->get();
+
+                    foreach ($imagesToDelete as $img) {
+                        if (file_exists($img->image)) {
+                            unlink($img->image);
+                        }
+                        $img->delete();
+                    }
+                }
+            }
+
+            // 2. New images add
+            if ($request->hasFile('gallery_image')) {
+                foreach ($request->file('gallery_image') as $image) {
+                    if (!in_array($image->getMimeType(), ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'])) {
+                        continue;
+                    }
+                    $path = $image->store('uploads/product_images/gallery', 'real_public');
+                    $product->galleryImages()->create(['image' => $path]);
+                }
+            }
+
+            DB::commit();
+
             return response()->json([
                 'message' => 'Product updated successfully!',
                 'product' => $product->id,
             ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Product update failed: ' . $e->getMessage());
+
+            return response()->json([
+                'errors' => ['Product update failed: ' . $e->getMessage()]
+            ], 500);
         }
     }
 
-    protected function updateProductVariations(Request $request, Product $product)
+    protected function updateProductVariations(Request $request, Product $product, $oldBasePrice = null, $oldOfferPrice = null)
     {
-        $variations = $request->input('variations', []);
-        $attributes = $request->input('attributes', []);
+        $variations     = $request->input('variations', []);
+        $attributes     = $request->input('attributes', []);
         $variationFiles = $request->file('variations', []);
 
         if (empty($variations)) {
             return;
         }
 
-        // Get deleted variations from hidden field
-        $deletedVariations = $request->input('deleted_variations', '');
+        // ── Deleted variations ─────────────────────────────────────────────────────
+        $deletedVariations   = $request->input('deleted_variations', '');
         $deletedVariationIds = $deletedVariations ? explode(',', $deletedVariations) : [];
 
-        // Filter out deleted variations from the variations array
+        if (!empty($deletedVariationIds)) {
+            foreach ($deletedVariationIds as $deleteId) {
+                $stockToDelete = $product->productStock()->find($deleteId);
+                if ($stockToDelete) {
+                    // Image delete
+                    if ($stockToDelete->image && file_exists(public_path($stockToDelete->image))) {
+                        unlink(public_path($stockToDelete->image));
+                    }
+
+                    $stockToDelete->attributeOptions()->delete();
+                    $stockToDelete->delete();
+                }
+            }
+        }
+
+        // ── Filter valid variations ────────────────────────────────────────────────
         $filteredVariations = [];
         $filteredAttributes = [];
-        $filteredFiles = [];
-        $newIndex = 0;
+        $filteredFiles      = [];
+        $newIndex           = 0;
 
         foreach ($variations as $index => $variation) {
-             // raw attributes
             $rawAttributes = $attributes[$index] ?? [];
-
-            // check if user actually selected at least one attribute
-            $hasAttribute = false;
+            $hasAttribute  = false;
 
             foreach ($rawAttributes as $attr) {
                 if (!empty($attr['attribute']) && !empty($attr['attribute_value'])) {
@@ -227,61 +320,65 @@ class ProductEditController extends Controller
                 }
             }
 
-            if (!$hasAttribute) {
-                continue;
-            }
-                
             $variationId = $variation['id'] ?? null;
 
-            // Only keep variations that are NOT in the deleted list
+            // If it's a new variation and has no attributes, skip it.
+            // Existing variations shouldn't be skipped because their attributes might just be read-only/unsubmitted.
+            if (!$variationId && !$hasAttribute) {
+                continue;
+            }
+
             if (!$variationId || !in_array($variationId, $deletedVariationIds)) {
                 $filteredVariations[$newIndex] = $variation;
                 $filteredAttributes[$newIndex] = $attributes[$index] ?? [];
-                $filteredFiles[$newIndex] = $variationFiles[$index] ?? [];
+                $filteredFiles[$newIndex]      = $variationFiles[$index] ?? [];
                 $newIndex++;
             }
         }
 
-        // Delete variations that were removed
-        if (!empty($deletedVariationIds)) {
-            foreach ($deletedVariationIds as $deleteId) {
-                $stockToDelete = $product->productStock()->find($deleteId);
-                if ($stockToDelete) {
-                    if ($stockToDelete->image && file_exists(public_path($stockToDelete->image))) {
-                        unlink(public_path($stockToDelete->image));
-                    }
-                    // Delete attribute options
-                    $stockToDelete->attributeOptions()->delete();
-                    // Delete the variation
-                    $stockToDelete->delete();
-                }
-            }
-        }
-
-        // Update or create variations using FILTERED data
+        // ── Update or Create variations ────────────────────────────────────────────
         foreach ($filteredVariations as $index => $variation) {
             $variationId = $variation['id'] ?? null;
 
-            // Handle image upload
+            // Image handle
             $imageFile = $filteredFiles[$index]['image'] ?? null;
             $imagePath = $variation['existing_image'] ?? null;
 
             if ($imageFile instanceof \Illuminate\Http\UploadedFile) {
-                $imagePath = $this->uploadVariationImage($imageFile);
-
-                // Delete old image if new one is uploaded
+                // Old image delete
                 if ($variationId && !empty($variation['existing_image'])) {
                     $oldImagePath = public_path($variation['existing_image']);
                     if (file_exists($oldImagePath)) {
                         unlink($oldImagePath);
                     }
                 }
+                $imagePath = $this->uploadVariationImage($imageFile);
             }
 
+            $newPrice = ($product->offer_price > 0 ? (float) $product->offer_price : (float) $product->base_price);
+            $submittedPrice = $variation['price'] ?? null;
+            
+            \Log::info("DEBUG VARIATION PRICE: Submitted: " . json_encode($submittedPrice) . " | Old Base: " . json_encode($oldBasePrice) . " | Old Offer: " . json_encode($oldOfferPrice) . " | New Price: " . json_encode($newPrice));
+
+            $isDefaultPrice = false;
+            if ($submittedPrice === '' || is_null($submittedPrice)) {
+                $isDefaultPrice = true;
+            } else {
+                $subPriceF = (float)$submittedPrice;
+                $oldBaseF = (float)$oldBasePrice;
+                $oldOfferF = (float)$oldOfferPrice;
+                if ($subPriceF === $oldBaseF || $subPriceF === $oldOfferF) {
+                    $isDefaultPrice = true;
+                }
+            }
+
+            $priceToSave = $isDefaultPrice ? $newPrice : $submittedPrice;
+
             if ($variationId && $stock = $product->productStock()->find($variationId)) {
+                // ── EXISTING variation update ──────────────────────────────────────
                 $stockData = [
-                    'quantity' => $variation['quantity'] ?? 0,
-                    'price' => $variation['price'] ?? $product->base_price,
+                    // quantity update করবো না — Stock In page থেকে manage হবে
+                    'price' => $priceToSave,
                 ];
 
                 if ($imagePath) {
@@ -290,43 +387,87 @@ class ProductEditController extends Controller
 
                 $stock->update($stockData);
 
-                // Update attribute options
-                if (!empty($filteredAttributes[$index])) {
-                    // Delete existing attribute options
+                // Attribute options re-create (only if attributes are provided in the request)
+                $hasAttribute = false;
+                $rawAttributes = $filteredAttributes[$index] ?? [];
+                foreach ($rawAttributes as $attr) {
+                    if (!empty($attr['attribute']) && !empty($attr['attribute_value'])) {
+                        $hasAttribute = true;
+                        break;
+                    }
+                }
+
+                if ($hasAttribute && !empty($filteredAttributes[$index])) {
                     $stock->attributeOptions()->delete();
 
-                    // Create new attribute options
                     foreach ($filteredAttributes[$index] as $attr) {
                         if (!empty($attr['attribute']) && !empty($attr['attribute_value'])) {
                             $stock->attributeOptions()->create([
-                                'attribute_id' => $attr['attribute'],
+                                'attribute_id'       => $attr['attribute'],
                                 'attribute_value_id' => $attr['attribute_value'],
                             ]);
                         }
                     }
+
+                    //variation_label update করো stock manage history তে
+                    $newLabel = $stock->fresh()
+                        ->attributeOptions
+                        ->map(fn($opt) => $opt->attribute->attr_name . ': ' . $opt->attributeValue->attr_value)
+                        ->implode(' / ');
+
+                    ProductStockManage::where('product_stock_id', $stock->id)->update(['variation_label' => $newLabel]);
                 }
 
             } else {
+                // ── NEW variation create ───────────────────────────────────────────
+                $newQty = $variation['quantity'] ?? 0;
 
                 $stock = $product->productStock()->create([
-                    'quantity' => $variation['quantity'] ?? 0,
-                    'price' => $variation['price'] ?? $product->base_price,
-                    'image' => $imagePath,
+                    'quantity' => $newQty,
+                    'price'    => $priceToSave,
+                    'image'    => $imagePath,
                 ]);
 
-                // Create attribute options for new variation
+                // Attribute options create
                 if (!empty($filteredAttributes[$index])) {
                     foreach ($filteredAttributes[$index] as $attr) {
                         if (!empty($attr['attribute']) && !empty($attr['attribute_value'])) {
                             $stock->attributeOptions()->create([
-                                'attribute_id' => $attr['attribute'],
+                                'attribute_id'       => $attr['attribute'],
                                 'attribute_value_id' => $attr['attribute_value'],
                             ]);
                         }
                     }
                 }
+
+                // নতুন variant এর stock log — attribute save এর পরে label তৈরি
+                if ($newQty > 0) {
+                    $label = $stock->fresh()
+                        ->attributeOptions
+                        ->map(fn($opt) => $opt->attribute->attr_name . ': ' . $opt->attributeValue->attr_value)
+                        ->implode(' / ');
+
+                    $wholesale_price = $request->wholesale_price ?? $variation['price'] ?? $product->base_price;
+
+                    ProductStockManage::create([
+                        'product_id'       => $product->id,
+                        'product_stock_id' => $stock->id,
+                        'variation_label'  => $label,
+                        'quantity'         => $newQty,
+                        'stocked_at'       => now(),
+                        'product_price'    => $product->base_price ?? 0,
+                        'wholesale_price'  => $wholesale_price,
+                        'total_amount'     => $wholesale_price * $newQty,
+                        'stock'            => 'stock_in',
+                    ]);
+                }
             }
         }
+
+        //product quantity recalculate (soft deleted)
+        $product->update([
+            'quantity' => ProductStock::where('product_id', $product->id)->sum('quantity')
+        ]);
     }
 
     private function uploadVariationImage($imageFile)
@@ -342,76 +483,64 @@ class ProductEditController extends Controller
     }
 
     // Handle file uploads
-    private function makeSafeFileName($file, $prefix = '')
-    {
-        $name = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
-        $extension = $file->getClientOriginalExtension();
-
-        // remove space & special chars
-        $name = preg_replace('/[^A-Za-z0-9\-]/', '-', $name);
-        $name = strtolower($name);
-
-        return time() . '_' . $prefix . $name . '.' . $extension;
-    }
-    
     private function handleFileUploads(Request $request, Product $product): array
     {
         $data = [];
 
-        /* ================= THUMB IMAGE ================= */
+        // Handle thumb image
         if ($request->hasThumbRemove == 1) {
-
+            // Delete old image from public folder
             if ($product->thumb_image && file_exists(public_path($product->thumb_image))) {
                 unlink(public_path($product->thumb_image));
             }
-
             $data['thumb_image'] = null;
-
         } elseif ($request->hasFile('thumb_image')) {
-
+            // Delete old image from public folder
             if ($product->thumb_image && file_exists(public_path($product->thumb_image))) {
                 unlink(public_path($product->thumb_image));
             }
 
-            $file = $request->file('thumb_image');
-            $fileName = $this->makeSafeFileName($file);
+            $thumbImage = $request->file('thumb_image');
+            $thumbImageName = time() . '_' . $thumbImage->getClientOriginalName();
+            $thumbImage->move(public_path('uploads/product_images'), $thumbImageName);
 
-            $file->move(public_path('uploads/product_images'), $fileName);
-            $data['thumb_image'] = 'uploads/product_images/' . $fileName;
+            // Save the image path to the database
+            $data['thumb_image'] = 'uploads/product_images/' . $thumbImageName;
         }
 
 
-        /* ================= BACK IMAGE ================= */
+        // Handle back image
         if ($request->hasBackRemove == 1) {
-
+            // Delete old back image from the public folder
             if ($product->back_image && file_exists(public_path($product->back_image))) {
                 unlink(public_path($product->back_image));
             }
-
             $data['back_image'] = null;
-
         } elseif ($request->hasFile('back_image')) {
-
+            // Delete old back image from the public folder
             if ($product->back_image && file_exists(public_path($product->back_image))) {
                 unlink(public_path($product->back_image));
             }
 
-            $file = $request->file('back_image');
-            $fileName = $this->makeSafeFileName($file);
+            $backImage = $request->file('back_image');
+            $backImageName = time() . '_' . $backImage->getClientOriginalName();
+            $backImage->move(public_path('uploads/product_images'), $backImageName);
 
-            $file->move(public_path('uploads/product_images'), $fileName);
-            $data['back_image'] = 'uploads/product_images/' . $fileName;
+            // Save the image path to the database
+            $data['back_image'] = 'uploads/product_images/' . $backImageName;
         }
+
 
         return $data;
     }
+
 
     private function prepareProductData(array $validated, Request $request): array
     {
         $discountDetails = $this->calculateDiscount($request, $validated['base_price']);
         return [
             'name' => $validated['name'],
-            'brand_id' => $validated['brand_id'],
+            // 'brand_id' => $validated['brand_id'] ?? '',
             'category_id' => $validated['category_id'],
             'subcategory_id' => $request->subcategory_id,
             'subsubcategory_id' => $request->subsubcategory_id,
@@ -429,7 +558,7 @@ class ProductEditController extends Controller
             'publish_at' => $request->publish_at,
             'expire_date' => $request->expire_date,
             'pre_order' => $request->preorder ?? 2,
-            'badge' => $request->badge ?? null,
+            'stock_out' => $request->stock_out ?? 0,
 
             ...$discountDetails,
         ];

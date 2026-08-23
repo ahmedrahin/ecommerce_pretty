@@ -1,6 +1,6 @@
 <x-default-layout>
 
-    @section('title') Product Compare @endsection
+    @section('title') Home & Away Selection @endsection
 
     @section('breadcrumbs')
     {{ Breadcrumbs::render('compare') }}

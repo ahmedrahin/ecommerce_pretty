@@ -30,6 +30,8 @@ class FullCompare extends Component
             'second_product_id' => 'required|different:first_product_id|exists:products,id',
         ], [
             'different' => 'First and second product must be different.',
+            'first_product_id' => 'The home product field is required and must exist.',
+            'second_product_id' => 'The away product field is required and must exist.',
         ]);
 
         FullComparison::create([

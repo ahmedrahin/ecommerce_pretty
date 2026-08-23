@@ -17,7 +17,7 @@
                         <td style="font-weight: 600;">{{$provider_method->provider_name}}</td>
                         <td class="text-center">
                             <span class="badge badge-light-{{$provider_method->provider_charge > 20 ? 'primary' : 'danger'}}">
-                                ${{$provider_method->provider_charge}}
+                                {{$provider_method->provider_charge}}৳
                             </span>
                         </td>
                         <td class="text-center">

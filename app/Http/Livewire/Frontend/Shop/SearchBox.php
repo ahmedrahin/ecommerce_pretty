@@ -14,9 +14,9 @@ class SearchBox extends Component
     public $products = [];
     public $filteredCategories = [];
 
-    // protected $queryString = [
-    //     'searchQuery' => ['except' => '']
-    // ];
+    protected $queryString = [
+        'searchQuery' => ['except' => '']
+    ];
 
 
     public function updatedSearchQuery()
@@ -46,20 +46,17 @@ class SearchBox extends Component
 
     public function searchProducts()
     {
-        $query = $this->searchQuery;
-
         $this->products = Product::activeProducts()
-            ->where(function ($q) use ($query) {
-                $q->where('name', 'LIKE', "%{$query}%")
-                ->orWhere('sku_code', 'LIKE', "%{$query}%")
-                ->orWhereHas('tags', function ($t) use ($query) {
-                    $t->where('name', 'LIKE', "%{$query}%");
-                });
+            ->where(function($query) {
+                $query->where('name', 'like', '%'.$this->searchQuery.'%')->orWhere('sku_code', 'like', '%'.$this->searchQuery.'%')
+                      ->orWhereHas('tags', function($q) {
+                          $q->where('name', 'like', '%'.$this->searchQuery.'%');
+                      });
             })
-            ->select('id', 'name', 'sku_code', 'thumb_image', 'slug', 'base_price', 'offer_price', 'discount_option')
             ->orderBy('name')
             ->limit(10)
-            ->get(); 
+            ->get()
+            ->toArray();
     }
 
     public function searchCategories()
@@ -91,12 +88,6 @@ class SearchBox extends Component
 
     public function render()
     {
-        $topCategories = Category::withCount('product')
-                        ->orderBy('product_count', 'desc')
-                        ->where('status',1)
-                        ->take(10)
-                        ->get();
-
-        return view('livewire.frontend.shop.search-box', compact('topCategories'));
+        return view('livewire.frontend.shop.search-box');
     }
 }

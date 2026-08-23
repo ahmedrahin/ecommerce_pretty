@@ -22,15 +22,18 @@ class ProductsDataTable extends DataTable
     public function dataTable(QueryBuilder $query): EloquentDataTable
     {
         return (new EloquentDataTable($query))
+            ->addColumn('drag_handle', function (Product $product) {
+                return '<span class="drag-handle" style="cursor: move; font-size: 18px; color: #a1a5b7; user-select: none;">☰</span>';
+            })
             ->addIndexColumn()
             ->editColumn('name', function (Product $product) {
                 return view('pages.apps.product.columns.name', compact('product'));
             })
             ->editColumn('base_price', function (Product $product) {
                 if ($product->discount_option == 1) {
-                    return '$' . ($product->base_price);
+                    return ($product->base_price) . '৳';
                 } else {
-                    return '$' . ($product->offer_price) . '<br><del style="color: #f1416cad">' . '$' . ($product->base_price) . '</del>';
+                    return ($product->offer_price) . '৳' . '<br><del style="color: #f1416cad">' . ($product->base_price) . '৳' . '</del>';
                 }
             })
             ->editColumn('offer_price', function (Product $product) {
@@ -200,7 +203,7 @@ class ProductsDataTable extends DataTable
             })
             ->orderColumn('id', 'id $1')
             ->setRowId('id')
-            ->rawColumns(['name', 'base_price', 'quantity', 'category_id', 'rating', 'selling', 'actions']);
+            ->rawColumns(['drag_handle', 'name', 'base_price', 'quantity', 'category_id', 'rating', 'selling', 'actions']);
     }
 
     /**
@@ -211,12 +214,18 @@ class ProductsDataTable extends DataTable
         $cacheKey = config('dbcachekey.product');
         $products = Cache::rememberForever($cacheKey, function () use ($model) {
             return $model->newQuery()
+                         ->orderBy('is_featured', 'asc')
+                         ->orderBy('sort_order', 'asc')
                          ->orderBy('id', 'desc')
                          ->get();
         });
 
         $ids = $products->pluck('id')->toArray();
-        return $model->newQuery()->whereIn('id', $ids)->orderBy('id', 'desc');
+        return $model->newQuery()
+            ->whereIn('id', $ids)
+            ->orderBy('is_featured', 'asc')
+            ->orderBy('sort_order', 'asc')
+            ->orderBy('id', 'desc');
     }
 
     /**
@@ -260,6 +269,7 @@ class ProductsDataTable extends DataTable
     public function getColumns(): array
     {
         return [
+            Column::computed('drag_handle')->title('Sort')->addClass('drag-handle-cell text-center no-export')->exportable(false)->printable(false),
             Column::computed('DT_RowIndex')->title('ID')->addClass('text-center'),
             Column::make('name')->title('Name'),
             Column::make('base_price')->title('Price')->addClass('text-center'),

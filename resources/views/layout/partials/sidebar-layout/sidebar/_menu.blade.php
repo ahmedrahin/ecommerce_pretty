@@ -133,7 +133,7 @@
                         <!--end:Menu link-->
                     </div>
 
-                    <div class="menu-item">
+                    {{-- <div class="menu-item">
                         <!--begin:Menu link-->
                         <a class="menu-link {{ request()->routeIs('question.*') ? 'active' : '' }}"
                             href="{{ route('question.weekly') }}">
@@ -143,7 +143,7 @@
                             <span class="menu-title">Product Questions</span>
                         </a>
                         <!--end:Menu link-->
-                    </div>
+                    </div> --}}
                 </div>
                 <!--end:Menu sub-->
             </div>
@@ -217,7 +217,7 @@
                         <!--end:Menu link-->
                     </div>
 
-                    <div class="menu-item">
+                    {{-- <div class="menu-item">
                         <a class="menu-link {{ request()->routeIs('product-catalogue.subsubcategory.index') ? 'active' : '' }}"
                             href="{{ route('product-catalogue.subsubcategory.index') }}">
                             <span class="menu-bullet">
@@ -225,9 +225,9 @@
                             </span>
                             <span class="menu-title">Subsubcategory</span>
                         </a>
-                    </div>
+                    </div> --}}
 
-                    <div class="menu-item">
+                    {{-- <div class="menu-item">
                         <a class="menu-link {{ request()->routeIs('product-catalogue.product.filter') ? 'active' : '' }}"
                             href="{{ route('product-catalogue.product.filter') }}">
                             <span class="menu-bullet">
@@ -235,7 +235,7 @@
                             </span>
                             <span class="menu-title">Category Filter</span>
                         </a>
-                    </div>
+                    </div> --}}
 
                 </div>
             </div>
@@ -286,13 +286,15 @@
                             <span class="menu-title">Product Variant</span>
                         </a>
                         <!--end:Menu link-->
-                        {{-- <a class="menu-link {{ request()->routeIs('product-management.full.compare*') ? 'active' : '' }}"
+{{--
+                        <a class="menu-link {{ request()->routeIs('product-management.full.compare*') ? 'active' : '' }}"
                             href="{{ route('product-management.full.compare') }}">
                             <span class="menu-bullet">
                                 <span class="bullet bullet-dot"></span>
                             </span>
-                            <span class="menu-title">Featured Compare</span>
-                        </a> --}}
+                            <span class="menu-title">Home & Away Selection</span>
+                        </a>
+--}}
                     </div>
 
                 </div>
@@ -371,6 +373,7 @@
                 <!--end:Menu sub-->
             </div>
 
+
             <!--begin:Menu item-->
             <div class="menu-item pt-5">
                 <!--begin:Menu content-->
@@ -381,18 +384,7 @@
             </div>
             <!--end:Menu item-->
 
-            <div class="menu-item">
-                <!--begin:Menu link-->
-                <a class="menu-link {{ request()->routeIs('subscription*') ? 'active' : '' }}"
-                    href="{{ route('subscription.index') }}">
-                    <i class="ki-duotone ki-sms">
-                        <span class="path1"></span>
-                        <span class="path2"></span>
-                    </i>
-                    <span class="menu-title">Subscription Emails</span>
-                </a>
-                <!--end:Menu link-->
-            </div>
+            
 
             <!--begin:Menu item-->
             <div class="menu-item">
@@ -410,7 +402,7 @@
             <!--end:Menu item-->
 
             <!--begin:Menu item-->
-            <div class="menu-item">
+            {{-- <div class="menu-item">
                 <!--begin:Menu link-->
                 <a class="menu-link {{ request()->routeIs('review*') ? 'active' : '' }}"
                     href="{{ route('review.index') }}">
@@ -418,44 +410,32 @@
                     <span class="menu-title">Reviews</span>
                 </a>
                 <!--end:Menu link-->
-            </div>
+            </div> --}}
             <!--end:Menu item-->
 
-             <div data-kt-menu-trigger="click"
-                class="menu-item menu-accordion {{ request()->routeIs('slider.*') ? 'here show' : '' }}">
+            <!--begin:Menu item-->
+            <div class="menu-item">
                 <!--begin:Menu link-->
-                <span class="menu-link">
+                <a class="menu-link {{ request()->routeIs('slider*') ? 'active' : '' }}"
+                    href="{{ route('slider.index') }}">
                     <i class="ki-duotone ki-picture">
                         <span class="path1"></span>
                         <span class="path2"></span>
                     </i>
-                    <span class="menu-title">Home Banner</span>
-                    <span class="menu-arrow"></span>
-                </span>
+                    <span class="menu-title">Banner Images</span>
+                </a>
                 <!--end:Menu link-->
-                <!--begin:Menu sub-->
-                <div class="menu-sub menu-sub-accordion">
-                    <!--begin:Menu item-->
-                    <div class="menu-item">
-                        <!--begin:Menu link-->
-                        <a class="menu-link {{ request()->routeIs('slider.index') ? 'active' : '' }}"
-                            href="{{ route('slider.index') }}">
-                            <span class="menu-bullet">
-                                <span class="bullet bullet-dot"></span>
-                            </span>
-                            <span class="menu-title">Banner Images</span>
-                        </a>
-                        <a class="menu-link {{ request()->routeIs('slider.content') ? 'active' : '' }}"
-                            href="{{ route('slider.content') }}">
-                            <span class="menu-bullet">
-                                <span class="bullet bullet-dot"></span>
-                            </span>
-                            <span class="menu-title">Banner Content</span>
-                        </a>
-                    </div>
-
-                </div>
             </div>
+            <div class="menu-item">
+                <!--begin:Menu link-->
+                <a class="menu-link {{ request()->routeIs('review.image*') ? 'active' : '' }}"
+                    href="{{ route('review.image') }}">
+                    <i class="ki-duotone ki-star"></i>
+                    <span class="menu-title">Review Images</span>
+                </a>
+                <!--end:Menu link-->
+            </div>
+            <!--end:Menu item-->
 
             <!--begin:Menu item-->
             <div class="menu-item pt-5">
@@ -470,16 +450,7 @@
             <!--begin:Menu item-->
             <div class="menu-item">
                 <!--begin:Menu link-->
-                <a class="menu-link {{ request()->routeIs('shipping.state') ? 'active' : '' }}"
-                    href="{{ route('shipping.state') }}">
-                    <i class="ki-duotone ki-geolocation">
-                        <span class="path1"></span>
-                        <span class="path2"></span>
-                    </i>
-                    <span class="menu-title">State / Cities</span>
-                </a>
-
-                 <a class="menu-link {{ request()->routeIs('shipping.shipping_method') ? 'active' : '' }}"
+                <a class="menu-link {{ request()->routeIs('shipping.shipping_method') ? 'active' : '' }}"
                     href="{{ route('shipping.shipping_method') }}">
                     <i class="ki-duotone ki-truck">
                         <span class="path1"></span>
@@ -494,15 +465,15 @@
             </div>
             <!--end:Menu item-->
 
-            {{-- <div class="menu-item pt-5">
+            <div class="menu-item pt-5">
                 <!--begin:Menu content-->
                 <div class="menu-content">
                     <span class="menu-heading fw-bold text-uppercase fs-7">Reports</span>
                 </div>
                 <!--end:Menu content-->
-            </div> --}}
+            </div>
 
-             {{-- <div data-kt-menu-trigger="click"
+             <div data-kt-menu-trigger="click"
                 class="menu-item menu-accordion {{ request()->routeIs('report.*') ? 'here show' : '' }}">
                 <!--begin:Menu link-->
                 <span class="menu-link">
@@ -541,7 +512,7 @@
                         </a>
                     </div>
                 </div>
-            </div> --}}
+            </div>
 
             <!--settings:Menu item-->
             <div class="menu-item pt-5">
@@ -552,6 +523,7 @@
                 <!--end:Menu content-->
             </div>
             <!--end:Menu item-->
+
 
             <div data-kt-menu-trigger="click"
                 class="menu-item menu-accordion {{ request()->routeIs('setting.*') ? 'here show' : '' }}">

@@ -54,6 +54,10 @@ document.querySelectorAll('[data-kt-action="restore"]').forEach(function (elemen
 
 // Listen for 'success' event emitted by Livewire
 Livewire.on('info', (message) => {
+    LaravelDataTables['order-table'].ajax.reload();
+});
+
+Livewire.on('info', (message) => {
     LaravelDataTables['trashorder-table'].ajax.reload();
 });
 

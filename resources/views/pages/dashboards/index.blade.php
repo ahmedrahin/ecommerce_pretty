@@ -224,9 +224,9 @@
                                             @endif
                                         </div>
                                         <div class="d-flex flex-column">
-                                            <a href="{{ route('product-management.show',$stock->product_id) }}" class="text-dark text-hover-primary fs-6 fw-bold">{{ $stock->product_name }}</a>
+                                            <a href="{{ route('product-management.show',$stock->product_id) }}" class="text-dark text-hover-primary fs-6 fw-bold">{{ Str::limit($stock->product_name , 20)}}</a>
                                             <span class="text-muted fw-bold">
-                                                {{ $stock->stock == 'stock_in' ? $stock->quantity . ' pcs stock' : 'stock out' }}
+                                               {{ $stock->variation_label ?? '' }} {{ $stock->stock == 'stock_in' ? $stock->quantity . ' pcs stock' : 'stock out' }}
                                             </span>
                                         </div>
                                     </div>
@@ -349,7 +349,7 @@
 
                                         <!--end::Description-->
                                         <span class="badge badge-light-{{ $bulletColor }} fs-8 fw-bold">
-                                            ${{ number_format($todayOrder->grand_total, 0) }}
+                                            {{ number_format($todayOrder->grand_total, 0) }}৳
                                         </span>
                                     </div>
                                 @empty
@@ -441,9 +441,37 @@
                     </div>
                     <!--end::Statistics Widget 4-->
                 </div>
+
+                <div class="col-xl-3">
+                    <!--begin::Statistics Widget-->
+                    <div class="card card-xl-stretch">
+                        <div class="card-body p-0">
+                            <div class="d-flex flex-stack card-p flex-grow-1">
+                                <span class="symbol symbol-50px me-2">
+                                    <span class="symbol-label bg-light-danger">
+                                        <i class="ki-duotone ki-basket fs-2x text-danger">
+                                            <span class="path1"></span>
+                                            <span class="path2"></span>
+                                            <span class="path3"></span>
+                                            <span class="path4"></span>
+                                        </i>
+                                    </span>
+                                </span>
+                                <div class="d-flex flex-column text-end">
+                                    <span class="text-dark fw-bold fs-2">{{ number_format($orderedProductQuantity) }}</span>
+                                    <span class="text-muted fw-semibold mt-1">Ordered Product Quantity</span>
+                                </div>
+                            </div>
+                            <div class="statistics-widget-4-chart card-rounded-bottom" data-kt-chart-color="danger"
+                                style="height: 150px"></div>
+                        </div>
+                    </div>
+                    <!--end::Statistics Widget-->
+                </div>
+
                 <div class="col-xl-3">
                     <!--begin::Statistics Widget 4-->
-                    <div class="card card-xl-stretch mb-5 mb-xl-8">
+                    <div class="card card-xl-stretch">
                         <!--begin::Body-->
                         <div class="card-body p-0">
                             <div class="d-flex flex-stack card-p flex-grow-1">
@@ -469,9 +497,9 @@
                     <!--end::Statistics Widget 4-->
                 </div>
 
-                <div class="col-xl-3">
+                {{-- <div class="col-xl-3" style="margin-top: 0;margin-bottom: 20px;">
                     <!--begin::Statistics Widget 4-->
-                    <div class="card card-xl-stretch mb-5 mb-xl-8">
+                    <div class="card card-xl-stretch">
                         <!--begin::Body-->
                         <div class="card-body p-0">
                             <div class="d-flex flex-stack card-p flex-grow-1">
@@ -497,7 +525,7 @@
                         <!--end::Body-->
                     </div>
                     <!--end::Statistics Widget 4-->
-                </div>
+                </div> --}}
             </div>
 
             <div class="row delivery-percent">
@@ -543,7 +571,7 @@
                                             <div class="py-1">
                                                 <span class="text-dark fs-1 fw-bold me-2">{{ round($percent) }}%</span>
                                                 <span class="fw-semibold text-muted fs-7">
-                                                    Total {{ $orders }} orders / ${{ number_format($amount, 0) }}
+                                                    Total {{ $orders }} orders / {{ number_format($amount, 0) }}৳
                                                 </span>
                                             </div>
                                             <div class="progress h-7px bg-{{ $color }} bg-opacity-50 mt-7">
@@ -610,7 +638,7 @@
                                             </td>
 
                                             <td class="text-center">
-                                                ${{ $product->price }}
+                                                {{ $product->price }}৳
                                             </td>
 
                                             <td class="text-center">

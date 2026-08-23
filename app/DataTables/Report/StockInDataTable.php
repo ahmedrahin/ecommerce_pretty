@@ -27,7 +27,9 @@ class StockInDataTable extends DataTable
         return (new EloquentDataTable($query))
             ->addIndexColumn()
             ->addColumn('product_name', function (ProductStockManage $row) {
-                return '<a href="' . route('product-management.show', $row->product->id) . '" class="text-gray-800 text-hover-primary mb-1">' . Str::limit($row->product->name, 50) . '</a>';
+                return '
+                <a href="' . route('product-management.show', $row->product->id) . '" class="text-gray-800 text-hover-primary mb-1">' . Str::limit($row->product->name, 20) . '</a>
+                <div class="text-muted fs-9 fw-bold" style="padding-top: 2px;">' . $row->variation_label . '</div>';
             })
 
             ->addColumn('product_price', function (ProductStockManage $row) {

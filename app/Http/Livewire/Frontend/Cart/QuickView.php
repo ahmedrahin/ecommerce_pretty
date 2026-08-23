@@ -131,6 +131,8 @@ class QuickView extends Component
                 return;
             }
 
+            $price = $product->offer_price ?? $product->base_price;
+
             // Add new item to the cart or update the existing quantity
             if (!isset($cart[$cartKey])) {
                 // If this combination does not exist in the cart, add it as a new item
@@ -151,6 +153,19 @@ class QuickView extends Component
             // Save the updated cart in session
             session()->put('cart', $cart);
             session()->forget('applied_coupon');
+
+            $variantParts = array_filter([$this->selectedSize, $this->selectedColor]);
+            $variantStr = implode(', ', $variantParts);
+
+            $this->dispatchBrowserEvent('addToCartDataLayer', [
+                'item_id' => $product->id,
+                'item_name' => $product->name,
+                'price' => (float)$price,
+                'quantity' => (int)$this->quantity,
+                'category' => $product->category->name ?? '',
+                'variant' => $variantStr
+            ]);
+
             $this->emit('cartUpdated');
             $this->emit('cartAdded');
             $this->emit('btnClose');

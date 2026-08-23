@@ -13,12 +13,7 @@
                         value="{{ $product->sku_code }}" />
                     <span id="sku_code" class="text-danger"></span>
                 </div>
-                <div class=" fv-row">
-                    <label class="required form-label">Quantity</label>
-                   <input type="number" name="quantity" value="{{ $product->quantity }}" class="form-control mb-2">
-                    <span id="quantity" class="text-danger"></span>
-                </div>
-                
+                <input type="hidden" name="quantity" value="{{ $product->quantity }}">
                 <div class=" fv-row">
                     <label class="form-label">Expire Date</label>
                     @if (is_null($product->expire_date) || $product->expire_date > now())
@@ -48,12 +43,9 @@
                 <div class="card-body pt-0">
                     <div id="product-options-container">
                         @foreach ($productStocks as $index => $productStock)
-                            <!-- Make sure this hidden ID field exists and has correct name -->
-                            <input type="hidden" name="variations[{{ $index }}][id]"
-                                value="{{ $productStock->id }}" />
+                            <input type="hidden" name="variations[{{ $index }}][id]" value="{{ $productStock->id }}" />
 
-                            <div class="product_options mb-6" data-variation-id="{{ $productStock->id }}"
-                                style="{{ $loop->last ? '' : 'padding-bottom: 20px; border-bottom: 1px solid #eee;' }}">
+                            <div class="product_options mb-6" data-variation-id="{{ $productStock->id }}" style="{{ $loop->last ? '' : 'padding-bottom: 20px; border-bottom: 1px solid #eee;' }}">
                                 <div class="row mb-4">
                                     @foreach ($attributes ?? [] as $attribute)
                                         <div class="col-md-6 mb-1">
@@ -81,20 +73,21 @@
                                     @endforeach
                                 </div>
 
-                                {{-- <div class="row mb-3">
-                                    <div class="col-md-4" >
+                                <div class="row mb-3">
+                                    <div class="col-md-4" style="display: none;">
                                         <label class="form-label fw-semibold">Price</label>
                                         <input type="number" step="0.01" min="0" class="form-control"
                                             name="variations[{{ $index }}][price]"
                                             value="{{ $productStock->price }}" placeholder="Enter price" />
                                     </div>
 
-                                    <div class="col-md-4" >
-                                        <label class="form-label fw-semibold">Quantity</label>
-                                        <input type="number" min="0" value="{{ $productStock->quantity }}"
-                                            class="form-control" name="variations[{{ $index }}][quantity]"
-                                            placeholder="Enter quantity" />
-                                    </div>
+                                    <div class="col-md-4">
+                                            <label class="form-label fw-semibold">Quantity</label>
+                                            <input type="number" min="0" value="{{ $productStock->quantity }}"
+                                                class="form-control bg-light" 
+                                                name="variations[{{ $index }}][quantity]"
+                                                readonly />
+                                        </div>
 
                                     <div class="col-md-4">
                                         <input type="file" name="variations[{{ $index }}][image]"
@@ -107,7 +100,7 @@
                                                 value="{{ $productStock->image }}">
                                         @endif
                                     </div>
-                                </div> --}}
+                                </div>
 
                                 <div class="d-flex align-items-center gap-4">
                                     <input type="number" class="form-control mw-100 w-200px"
@@ -160,7 +153,25 @@
                                     </div>
                                 @endforeach
                             </div>
-                            
+                            <div class="row mb-3">
+                                <div class="col-md-4" style="display: none;">
+                                    <label class="form-label fw-semibold">Price</label>
+                                    <input type="number" step="0.01" min="0" class="form-control"
+                                        name="variations[0][price]" placeholder="Enter price" />
+                                </div>
+
+                                <div class="col-md-4">
+                                    <label class="form-label fw-semibold">Quantity</label>
+                                    <input type="number" min="0" class="form-control"
+                                        name="variations[0][quantity]" placeholder="Enter quantity" />
+                                </div>
+
+                                <div class="col-md-4">
+                                    <label class="form-label fw-semibold">Image</label>
+                                    <input type="file" name="variations[0][image]" class="form-control"
+                                        accept="image/*">
+                                </div>
+                            </div>
                             <div class="d-flex align-items-center gap-4">
                                 <input type="number" class="form-control mw-100 w-200px"
                                     name="variations[0][option_quantity]" placeholder="Quantity"
@@ -186,26 +197,109 @@
             @endif
         </div>
 
+        <div class="card card-flush py-4">
+
+            <div class="card-header">
+                <div class="card-title">
+                    <h2>Key Features</h2>
+                </div>
+            </div>
+
+            <div class="card-body pt-0">
+                <div>
+                    <div id="key_features" style="width: 100%" class="min-h-200px mb-2 ql-container ql-snow">
+                        @php echo $product->key_features; @endphp
+                    </div>
+                    <input name="key_features" hidden>
+                </div>
+            </div>
+
+        </div>
+
     </div>
 </div>
 
+<div class="tab-pane fade" id="specification" role="tab-panel">
+    <div class="col-12 mt-0">
+        <div class="card radius-10 w-100">
+            <div class="card-body">
+                <h5 style="margin-bottom: 20px;">Product Specifications</h5>
+
+                <div id="specification-wrapper">
+                    @foreach ($product->specifications->groupBy('group') as $groupName => $items)
+                        <div class="specification-group mb-4 border p-3 rounded"
+                            data-group-index="{{ $loop->index }}">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <input type="text" name="spec_group[]" class="form-control w-50"
+                                    value="{{ $groupName }}" placeholder="Group (e.g. Display)">
+                                <button type="button" onclick="removeGroup(this)"
+                                    class="btn btn-sm btn-light-danger ms-2">Remove Group</button>
+                            </div>
+
+                            <div class="specification-items">
+                                @foreach ($items as $item)
+                                    <div class="row g-3 mb-2 specification-item">
+                                        {{-- keep track of spec ID for update --}}
+                                        <input type="hidden" name="spec_id[{{ $loop->parent->index }}][]"
+                                            value="{{ $item->id }}">
+
+                                        <div class="col-md-5">
+                                            <input type="text" name="spec_name[{{ $loop->parent->index }}][]"
+                                                class="form-control" value="{{ $item->name }}"
+                                                placeholder="Specification Name">
+                                        </div>
+
+                                        <div class="col-md-5">
+                                            <input type="text" name="spec_value[{{ $loop->parent->index }}][]"
+                                                class="form-control" value="{{ $item->value }}"
+                                                placeholder="Value">
+                                        </div>
+
+                                        <div class="col-md-2 d-flex align-items-center">
+                                            <button type="button" onclick="removeSpecification(this)"
+                                                class="btn btn-sm btn-icon btn-light-danger">
+                                                <i class="ki-duotone ki-cross fs-1">
+                                                    <span class="path1"></span>
+                                                    <span class="path2"></span>
+                                                </i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                @endforeach
+                            </div>
+
+                            <button type="button" class="btn btn-sm btn-light-success mt-2"
+                                onclick="addSpecification(this)">+ Add More Row</button>
+                        </div>
+                    @endforeach
+                </div>
+
+                <button type="button" class="btn btn-light-primary btn-sm mt-3" onclick="addGroup()">+ Add New
+                    Group</button>
+            </div>
+        </div>
+    </div>
+
+
+</div>
+
 @push('scripts')
-    <script>
+   <script>
         $(document).ready(function() {
             var KTAppEcommerceSaveProduct = function() {
                 const initConditionsSelect2 = () => {
                     const allConditionTypes = document.querySelectorAll(
                         '[data-kt-ecommerce-catalog-add-product="product_option"]');
-                            allConditionTypes.forEach(type => {
-                                if ($(type).hasClass("select2-hidden-accessible")) {
-                                    return;
-                                } else {
-                                    $(type).select2({
-                                        minimumResultsForSearch: -1
-                                    });
-                                }
+                    allConditionTypes.forEach(type => {
+                        if ($(type).hasClass("select2-hidden-accessible")) {
+                            return;
+                        } else {
+                            $(type).select2({
+                                minimumResultsForSearch: -1
                             });
                         }
+                    });
+                }
 
                 return {
                     init: function() {
@@ -345,6 +439,29 @@
                             @endforeach
                         </div>
 
+                        <div class="row mb-3">
+                            <div class="col-md-4" style="display: none;">
+                                <label class="form-label fw-semibold">Price</label>
+                                <input type="number" step="0.01" min="0" class="form-control"
+                                    name="variations[${counter}][price]"
+                                    placeholder="Enter price" />
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label fw-semibold">Quantity</label>
+                                <input type="number" min="0" class="form-control"
+                                    name="variations[${counter}][quantity]"
+                                    placeholder="Enter quantity" />
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label fw-semibold">Image</label>
+                                <input type="file" class="form-control"
+                                    name="variations[${counter}][image]" accept="image/*" />
+                            </div>
+                            
+                        </div>
+
                         <div class="d-flex align-items-center gap-4 mt-2">
                             <button type="button" data-repeater-delete=""
                                 class="btn btn-sm btn-icon btn-light-danger">
@@ -375,4 +492,100 @@
         });
     </script>
 
+    {{-- specification --}}
+    <script>
+        (function() {
+            const groups = Array.from(document.querySelectorAll('.specification-group'));
+
+            if (groups.length && !groups[0].dataset.groupIndex) {
+                // if server didn't set group-index, set sequential indexes
+                groups.forEach((g, i) => g.dataset.groupIndex = i);
+            }
+
+            let groupIndex = groups.reduce((max, g) => Math.max(max, parseInt(g.dataset.groupIndex || -1, 10)), -1);
+
+            // Add new group (with one default row)
+            window.addGroup = function() {
+                const idx = ++groupIndex;
+                const wrapper = document.getElementById('specification-wrapper');
+
+                const html = `
+                    <div class="specification-group mb-4 border p-3 rounded" data-group-index="${idx}">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <input type="text" name="spec_group[]" class="form-control w-50" placeholder="Group (e.g. Display)">
+                            <button type="button" onclick="removeGroup(this)" class="btn btn-sm btn-light-danger ms-2">Remove Group</button>
+                        </div>
+
+                        <div class="specification-items">
+                            <div class="row g-3 mb-2 specification-item">
+                                <input type="hidden" name="spec_id[${idx}][]" value="">
+                                <div class="col-md-5">
+                                    <input type="text" name="spec_name[${idx}][]" class="form-control" placeholder="Specification Name">
+                                </div>
+                                <div class="col-md-5">
+                                    <input type="text" name="spec_value[${idx}][]" class="form-control" placeholder="Value">
+                                </div>
+                                <div class="col-md-2 d-flex align-items-center">
+                                    <button type="button" onclick="removeSpecification(this)" class="btn btn-sm btn-icon btn-light-danger">
+                                        <i class="ki-duotone ki-cross fs-1">
+                                            <span class="path1"></span>
+                                            <span class="path2"></span>
+                                        </i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <button type="button" class="btn btn-sm btn-light-success mt-2" onclick="addSpecification(this)">+ Add More Row</button>
+                    </div>
+                `;
+                wrapper.insertAdjacentHTML('beforeend', html);
+            };
+
+            // Add row inside a group
+            window.addSpecification = function(button) {
+                const group = button.closest('.specification-group');
+                const idx = group.dataset.groupIndex;
+                const items = group.querySelector('.specification-items');
+
+                const row = `
+                    <div class="row g-3 mb-2 specification-item">
+                        <input type="hidden" name="spec_id[${idx}][]" value="">
+                        <div class="col-md-5">
+                            <input type="text" name="spec_name[${idx}][]" class="form-control" placeholder="Specification Name">
+                        </div>
+                        <div class="col-md-5">
+                            <input type="text" name="spec_value[${idx}][]" class="form-control" placeholder="Value">
+                        </div>
+                        <div class="col-md-2 d-flex align-items-center">
+                            <button type="button" onclick="removeSpecification(this)" class="btn btn-sm btn-icon btn-light-danger">
+                                <i class="ki-duotone ki-cross fs-1">
+                                    <span class="path1"></span>
+                                    <span class="path2"></span>
+                                </i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+                items.insertAdjacentHTML('beforeend', row);
+            };
+
+            // Remove a row
+            window.removeSpecification = function(button) {
+                const row = button.closest('.specification-item');
+                if (row) row.remove();
+            };
+
+            // Remove a whole group
+            window.removeGroup = function(button) {
+                const group = button.closest('.specification-group');
+                if (group) group.remove();
+            };
+
+            // If no groups present (create page or user removed all), ensure one default group exists
+            if (document.querySelectorAll('.specification-group').length === 0) {
+                addGroup();
+            }
+        })();
+    </script>
 @endpush

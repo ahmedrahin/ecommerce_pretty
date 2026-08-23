@@ -17,28 +17,26 @@
         </select>
         <span id="category_id" class="text-danger"></span>
 
-        <label class="form-label">Subcategory</label>
-        <select name="subcategory_id" id="subcategory_id_item" data-control="select2"
-            class="form-select form-select-solid mb-5" data-placeholder="Select a subcategory" data-allow-clear="true">
+        <label class="form-label">Subcategory (Multiple)</label>
+        <select name="subcategory_id[]" id="subcategory_id_item" data-control="select2"
+            class="form-select form-select-solid mb-5" data-placeholder="Select subcategories" 
+            data-allow-clear="true" multiple="multiple">
             <option></option>
         </select>
         <span id="subcategory_id" class="text-danger"></span>
 
-        <label class="form-label">Subsubcategory</label>
-        <select name="subsubcategory_id" id="subsubcategory_id_item" data-control="select2"
-            class="form-select form-select-solid mb-5" data-placeholder="Select a subsubcategory"
-            data-allow-clear="true">
+        {{-- <label class="form-label">Subsubcategory (Multiple)</label>
+        <select name="subsubcategory_id[]" id="subsubcategory_id_item" data-control="select2"
+            class="form-select form-select-solid mb-5" data-placeholder="Select subsubcategories"
+            data-allow-clear="true" multiple="multiple">
             <option></option>
         </select>
-        <span id="subsubcategory_id" class="text-danger"></span>
+        <span id="subsubcategory_id" class="text-danger"></span> --}}
 
         <label class="form-label">Brand</label>
         <select name="brand_id" data-control="select2" class="form-select form-select-solid mb-5"
             data-placeholder="Select a brand" data-allow-clear="true">
             <option></option>
-            @foreach ($brands as $brand)
-                <option value="{{ $brand->id }}" {{ $brand->id == $product->brand_id ? 'selected' : '' }}>{{ $brand->name }}</option>
-            @endforeach
         </select>
         <span id="brand_id" class="text-danger"></span>
 
@@ -58,6 +56,17 @@
                 <input class="form-check-input" type="checkbox" id="is_featured" name="is_featured" value="1" {{
                     $product->is_featured == 1 ? 'checked' : '' }}>
                 <label for="is_featured" class="form-check-label">set as featured product</label>
+            </div>
+
+            <div class="form-check form-check-custom form-check-solid mb-2">
+                <input class="form-check-input" type="checkbox" id="preorder" name="preorder" value="1" {{
+                    $product->pre_order == 1 ? 'checked' : '' }}>
+                <label for="preorder" class="form-check-label">set as up coming product</label>
+            </div>
+            <div class="form-check form-check-custom form-check-solid mb-2">
+                <input class="form-check-input" type="checkbox" id="stock_out" name="stock_out" value="1" {{
+                    $product->stock_out == 1 ? 'checked' : '' }}>
+                <label for="stock_out" class="form-check-label">set as stock out</label>
             </div>
         </div>
 
@@ -98,27 +107,6 @@
     </div>
 </div>
 
-<div class="card card-flush py-4">
-    <!--begin::Card header-->
-    <div class="card-header">
-        <!--begin::Card title-->
-        <div class="card-title">
-            <h2>Badge</h2>
-        </div>
-    </div>
-    <div class="card-body pt-0 pb-7">
-        <select class="form-select mb-2" data-control="select2" data-hide-search="true" data-placeholder="Select an option" id="product_badge" name="badge">
-            <option value=""></option>
-            <option value="trending" {{ $product->badge == 'trending' ? 'selected' : '' }}>Trending</option>
-            <option value="new" {{ $product->badge == 'new' ? 'selected' : '' }}>New Arrival</option>
-            <option value="flash" {{ $product->badge == 'falsh' ? 'selected' : '' }}>Flash Sale</option>
-            <option value="hot" {{ $product->badge == 'hot' ? 'selected' : '' }}>Hot</option>
-        </select>
-
-        <div class="text-muted fs-7">Set the product badge.</div>
-    </div>
-</div>
-
 @push('scripts')
 <script>
     $(document).ready(function() {
@@ -130,101 +118,167 @@
             });
         });
 
-    var selectedCategoryId = "{{ $product->category_id ?? '' }}";
-    var selectedSubcategoryId = "{{ $product->subcategory_id ?? '' }}";
-    var selectedSubsubcategoryId = "{{ $product->subsubcategory_id ?? '' }}";
-    var selectedBrandId = "{{ $product->brand_id ?? '' }}";
+        // Get selected values from the product (for edit mode)
+        var selectedCategoryId = "{{ $product->category_id ?? '' }}";
+        var selectedSubcategoryIds = @json($product->subcategories->pluck('id') ?? []);
+        var selectedSubsubcategoryIds = @json($product->subsubcategories->pluck('id') ?? []);
+        var selectedBrandId = "{{ $product->brand_id ?? '' }}";
 
-    // Function to update select options via AJAX
-    function updateSelectOptions(id, selectElementSelector, url, callback) {
-        if (id) {
-            $.ajax({
-                url: url + id,
-                type: "GET",
-                dataType: "json",
-                success: function (data) {
-                    var $select = $(selectElementSelector);
-                    $select.empty().append('<option></option>');
-                    $.each(data, function (key, value) {
-                        $select.append('<option value="' + value.id + '">' + value.name + '</option>');
-                    });
-                    if (callback) callback();
+        // Initialize multiple select2
+        $('#subcategory_id_item').select2({
+            placeholder: "Select subcategories",
+            allowClear: true
+        });
+
+        $('#subsubcategory_id_item').select2({
+            placeholder: "Select subsubcategories",
+            allowClear: true
+        });
+
+        // Function to update select options via AJAX
+        function updateSelectOptions(id, selectElementSelector, url, selectedValues = [], callback) {
+            if (id) {
+                $.ajax({
+                    url: url + id,
+                    type: "GET",
+                    dataType: "json",
+                    success: function (data) {
+                        var $select = $(selectElementSelector);
+                        $select.empty().append('<option></option>');
+                        
+                        $.each(data, function (key, value) {
+                            $select.append('<option value="' + value.id + '">' + value.name + '</option>');
+                        });
+                        
+                        // Set selected values if any
+                        if (selectedValues && selectedValues.length > 0) {
+                            $select.val(selectedValues).trigger('change');
+                        }
+                        
+                        if (callback) callback();
+                    }
+                });
+            } else {
+                $(selectElementSelector).empty().trigger('change');
+            }
+        }
+
+        // Function to load subsubcategories based on selected subcategories
+        function loadSubsubcategories(selectedSubcategories) {
+            if (selectedSubcategories && selectedSubcategories.length > 0) {
+                // Make single AJAX request with all IDs
+                $.ajax({
+                    url: "/admin/get-subsubcategories-for-multiple",
+                    type: "GET",
+                    data: { ids: selectedSubcategories },
+                    dataType: "json",
+                    success: function (data) {
+                        var $subsubcategorySelect = $('#subsubcategory_id_item');
+                        $subsubcategorySelect.empty().append('<option></option>');
+                        
+                        if (data && data.length > 0) {
+                            $.each(data, function (key, value) {
+                                $subsubcategorySelect.append('<option value="' + value.id + '">' + value.name + '</option>');
+                            });
+                        }
+                        
+                        // Set selected values for edit mode
+                        if (selectedSubsubcategoryIds && selectedSubsubcategoryIds.length > 0) {
+                            $subsubcategorySelect.val(selectedSubsubcategoryIds).trigger('change');
+                        }
+                        
+                        $subsubcategorySelect.select2({
+                            placeholder: "Select subsubcategories",
+                            allowClear: true
+                        });
+                    },
+                    error: function(xhr, status, error) {
+                        console.error("Error loading subsubcategories:", error);
+                    }
+                });
+            } else {
+                $('#subsubcategory_id_item').empty().append('<option></option>');
+                $('#subsubcategory_id_item').select2({
+                    placeholder: "Select subsubcategories",
+                    allowClear: true
+                });
+            }
+        }
+
+        // ------------------- Initial population for edit -------------------
+        if (selectedCategoryId) {
+            // Populate Subcategories
+            updateSelectOptions(selectedCategoryId, '#subcategory_id_item', '/admin/get-subcategories/', selectedSubcategoryIds, function () {
+                // After subcategories are loaded, load subsubcategories
+                if (selectedSubcategoryIds && selectedSubcategoryIds.length > 0) {
+                    loadSubsubcategories(selectedSubcategoryIds);
                 }
             });
-        } else {
-            $(selectElementSelector).empty();
+
+            // Populate Brands
+            updateSelectOptions(selectedCategoryId, 'select[name="brand_id"]', '/admin/get-brand/', [], function () {
+                $('select[name="brand_id"]').val(selectedBrandId).trigger('change');
+            });
         }
-    }
 
-    // ------------------- Initial population for edit -------------------
-    if (selectedCategoryId) {
-        // Populate Subcategories
-        updateSelectOptions(selectedCategoryId, '#subcategory_id_item', '/admin/get-subcategories/', function () {
-            $('#subcategory_id_item').val(selectedSubcategoryId).trigger('change');
-        });
-    }
+        // ------------------- Event Listeners -------------------
+        // Category change
+        $('#category_id_item').on('change', function () {
+            var categoryId = $(this).val();
 
-    if (selectedSubcategoryId) {
-        // Populate Subsubcategories
-        updateSelectOptions(selectedSubcategoryId, '#subsubcategory_id_item', '/admin/get-subsubcategories/', function () {
-            $('#subsubcategory_id_item').val(selectedSubsubcategoryId).trigger('change');
-        });
-    }
+            // Update Subcategories
+            updateSelectOptions(categoryId, '#subcategory_id_item', '/admin/get-subcategories/', [], function () {
+                $('#subcategory_id_item').val(null).trigger('change');
+            });
 
-    // ------------------- Event Listeners -------------------
-    // Category change
-    $('#category_id_item').on('change', function () {
-        var categoryId = $(this).val();
+            // Update Brands
+            updateSelectOptions(categoryId, 'select[name="brand_id"]', '/admin/get-brand/', [], function () {
+                $('select[name="brand_id"]').val(null).trigger('change');
+            });
 
-        // Update Subcategories
-        updateSelectOptions(categoryId, '#subcategory_id_item', '/admin/get-subcategories/', function () {
-            $('#subcategory_id_item').val(null).trigger('change'); // reset
+            // Reset Subsubcategory
+            $('#subsubcategory_id_item').empty().append('<option></option>');
+            $('#subsubcategory_id_item').select2({
+                placeholder: "Select subsubcategories",
+                allowClear: true
+            });
         });
 
-        // Update Brands
-        updateSelectOptions(categoryId, 'select[name="brand_id"]', '/admin/get-brand/', function () {
-            $('select[name="brand_id"]').val(null).trigger('change'); // reset
-        });
-
-        // Reset Subsubcategory
-        $('#subsubcategory_id_item').empty();
-    });
-
-    // Subcategory change
-    $('#subcategory_id_item').on('change', function () {
-        var subcategoryId = $(this).val();
-        updateSelectOptions(subcategoryId, '#subsubcategory_id_item', '/admin/get-subsubcategories/', function () {
-            if (selectedSubsubcategoryId) {
-                // Keep the saved subsubcategory on edit
-                $('#subsubcategory_id_item').val(selectedSubsubcategoryId).trigger('change');
-                selectedSubsubcategoryId = null; // clear after first use to avoid overwriting on change
+        // Subcategory change (multiple selection)
+        $('#subcategory_id_item').on('change', function () {
+            var selectedSubcategories = $(this).val();
+            
+            // Load subsubcategories based on selected subcategories
+            if (selectedSubcategories && selectedSubcategories.length > 0) {
+                loadSubsubcategories(selectedSubcategories);
             } else {
-                // Otherwise reset
-                $('#subsubcategory_id_item').val(null).trigger('change');
+                // Reset subsubcategory if no subcategory selected
+                $('#subsubcategory_id_item').empty().append('<option></option>');
+                $('#subsubcategory_id_item').select2({
+                    placeholder: "Select subsubcategories",
+                    allowClear: true
+                });
             }
         });
-    });
 
-
-
-        // Initialize Tagify script on the above inputs
+        // Initialize Tagify script
         var input = document.querySelector("#kt_tagify_for_product");
+        if (input) {
+            input.addEventListener('change', function(){
+                this.setAttribute('name', 'tags');
+            });
 
-        input.addEventListener('change', function(){
-            this.setAttribute('name', 'tags');
-        })
-
-        new Tagify(input, {
-            whitelist: @json($tags),
-            maxTags: 10,
-            dropdown: {
-                maxItems: 20,
-                classname: "tagify__inline__suggestions",
-                enabled: 0,
-                closeOnSelect: false
-            }
-        });
+            new Tagify(input, {
+                whitelist: @json($tags),
+                maxTags: 10,
+                dropdown: {
+                    maxItems: 20,
+                    classname: "tagify__inline__suggestions",
+                    enabled: 0,
+                    closeOnSelect: false
+                }
+            });
+        }
     });
-
 </script>
 @endpush

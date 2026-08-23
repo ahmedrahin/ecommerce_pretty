@@ -24,6 +24,7 @@
         }
     </style>
 
+{{--
 <div class="card-toolbar">
     <!--begin::Toolbar-->
     <div class="d-flex justify-content-end" data-kt-user-table-toolbar="base">
@@ -34,9 +35,8 @@
         </button>
     </div>
     <!--end::Toolbar-->
-
-    
 </div>
+--}}
 
 
     <div class="row">

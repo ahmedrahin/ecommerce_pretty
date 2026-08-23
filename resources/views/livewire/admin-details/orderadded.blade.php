@@ -58,7 +58,7 @@
                                     {{$order->orderItems->sum('quantity')}}
                                 </td>
                                 <td>
-                                    ${{$order->grand_total}}
+                                    ৳{{$order->grand_total}}
                                 </td>
                                 <td class="  text-end text-nowrap">
                                     <a href="{{route('order-management.order.show', $order->id)}}" class="btn btn-icon btn-active-light-primary w-30px h-30px" style="margin-right: -10px !important;" target="_blank">

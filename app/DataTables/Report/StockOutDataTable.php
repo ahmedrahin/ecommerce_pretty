@@ -27,8 +27,25 @@ class StockOutDataTable extends DataTable
         return (new EloquentDataTable($query))
             ->addIndexColumn()
             ->addColumn('product_name', function (Product $row) {
-                return '<a href="' . route('product-management.show', $row->id) . '" class="text-gray-800 text-hover-primary mb-1">' . Str::limit($row->name, 50) . '</a>';
-            })
+                    $link = '<a href="' . route('product-management.show', $row->id) . '" class="text-gray-800 text-hover-primary mb-1">'
+                        . Str::limit($row->name, 50) . '</a>';
+
+                    $outOfStockVariants = $row->productStock->where('quantity', 0);
+
+                    if ($outOfStockVariants->isNotEmpty()) {
+                        $labels = $outOfStockVariants->map(function ($stock) {
+                            $label = $stock->attributeOptions->map(function ($opt) {
+                                return $opt->attribute->attr_name . ': ' . $opt->attributeValue->attr_value;
+                            })->implode(' / ');
+
+                            return '<div class="text-muted fs-9 fw-bold" style="padding-top: 2px;">' . ($label ?: 'Single Product') . '</div>';
+                        })->implode('');
+
+                        $link .= $labels;
+                    }
+
+                    return $link;
+                })
 
             ->addColumn('last_stock_in', function ($row) {
                 if ($row->latestStockIn) {
@@ -90,7 +107,15 @@ class StockOutDataTable extends DataTable
     {
         return $model->newQuery()
             ->with(['latestStockIn', 'latestStockOut'])
-            ->where('quantity', '==', 0)
+            ->where(function ($q) {
+                $q->where(function ($q2) {
+                    $q2->doesntHave('productStock')
+                        ->where('quantity', 0);
+                })
+                ->orWhereHas('productStock', function ($q2) {
+                    $q2->where('quantity', 0);
+                });
+            })
             ->orderByDesc('created_at');
     }
 

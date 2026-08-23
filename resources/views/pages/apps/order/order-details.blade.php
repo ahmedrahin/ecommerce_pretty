@@ -71,6 +71,12 @@
         .table:not(.table-bordered) td {
             font-size: 13px !important;
         }
+
+        @media (max-width: 575px) {
+            .w-50{
+                width: 100% !important;
+            }
+        }
     </style>
 
 
@@ -103,7 +109,7 @@
                 class="btn btn-success btn-sm me-lg-n7">Edit Order</a> --}}
             <!--end::Button-->
             <!--begin::Button-->
-            <button class="btn btn-primary btn-sm" >Add New Order</button>
+            <a href="{{ route('order-management.order.create') }}" class="btn btn-primary btn-sm">Add New Order</a>
             <!--end::Button-->
         </div>
 
@@ -175,7 +181,7 @@
                                             <td class="fw-bold text-end">
                                                 @if ($order->shippingMethod)
                                                     @if ($order->shippingMethod->base_id)
-                                                        Inside {{ $order->shippingMethod->District->name }} -
+                                                        Inside {{ $order->shippingMethod->District->name ?? 'N/A' }} -
                                                         {{ $order->shipping_cost }} tk
                                                     @else
                                                         {{ $order->shippingMethod->provider_name }} -
@@ -462,7 +468,8 @@
                             <!--begin::Card body-->
                             <div class="card-body pt-0" style="font-size: 16px;">
                                 {{ $order->shipping_address }},
-                                {{-- {{ $order->zip_code ? 'zip-code:' . $order->zip_code : '' }} --}}
+                                {{ $order->zip_code ? 'zip-code:' . $order->zip_code : '' }}
+                                <br />{{ $order->district->name ?? '' }}.
                             </div>
                             <!--end::Card body-->
                         </div>
@@ -523,9 +530,9 @@
                                                 </td>
                                                 <td class="text-center">{{ $item->product->sku_code }}</td>
                                                 <td class="text-center">{{ $item->quantity }}</td>
-                                                <td class="text-center">${{ format_price($item->price) }}</td>
+                                                <td class="text-center">{{ format_price($item->price) }}৳</td>
                                                 <td class="text-end">
-                                                    ${{ format_price($item->price * $item->quantity) }}
+                                                    {{ format_price($item->price * $item->quantity) }}৳
                                                 </td>
                                             </tr>
                                         @endforeach
@@ -542,7 +549,7 @@
 
                                         <tr>
                                             <td colspan="4" class="text-end">Subtotal</td>
-                                            <td class="text-end">${{ format_price($subtotal) }}</td>
+                                            <td class="text-end">{{ format_price($subtotal) }}৳</td>
                                         </tr>
 
                                         @php
@@ -556,24 +563,19 @@
                                                 ({{ round($discountPercentage) }}%)
                                             </td>
                                             <td class="text-end">
-                                                ${{ format_price($discount) }}
+                                                {{ format_price($discount) }}৳
                                             </td>
                                         </tr>
 
 
                                         <tr>
                                             <td colspan="4" class="text-end">Shipping Rate</td>
-                                            <td class="text-end">${{ format_price($order->shipping_cost) }}</td>
+                                            <td class="text-end">{{ format_price($order->shipping_cost) }}৳</td>
                                         </tr>
                                         <tr>
                                             <td colspan="4" class="fs-3 text-dark text-end">Grand Total</td>
                                             <td class="text-dark fs-3 fw-bolder text-end">
-                                                ${{ format_price($order->grand_total) }}</td>
-                                        </tr>
-                                        <tr>
-                                            <td colspan="4" class="fs-3 text-success text-end">Paid</td>
-                                            <td class="text-dark fs-3 fw-bolder text-end">
-                                                ${{ format_price($order->paid_amount) }}</td>
+                                                {{ format_price($order->grand_total) }}৳</td>
                                         </tr>
                                     </tbody>
                                 </table>

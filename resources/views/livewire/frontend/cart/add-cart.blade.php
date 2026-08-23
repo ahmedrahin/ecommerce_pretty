@@ -1,25 +1,24 @@
 <div>
-    @php
+   @php
         $productStocks = $product->productStock ?? collect();
         $attributesList = $attributes->keyBy('id');
         $attributesValuesList = $attributesValues->keyBy('id');
         $groupedAttributes = [];
 
-        // group only single-attribute stocks (like before)
         $singleVariationStocks = $productStocks->filter(function ($productStock) {
-            return $productStock->attributeOptions->count() === 1;
+            return $productStock->attributeOptions->count() === 1 && !$productStock->is_disabled;
         });
 
-        foreach ($singleVariationStocks as $stock) {
-            foreach ($stock->attributeOptions as $opt) {
-                // group by attribute_id -> option_id => valueModel
-                $groupedAttributes[$opt->attribute_id][$opt->id] = $attributesValuesList[$opt->attribute_value_id] ?? null;
+        foreach ($singleVariationStocks as $productStock) {
+            foreach ($productStock->attributeOptions as $option) {
+                $groupedAttributes[$option->attribute_id][$option->id] =
+                    $attributesValuesList[$option->attribute_value_id] ?? null;
             }
         }
 
-        // map value_id => product image (if any)
         $valueImageMap = [];
         foreach ($productStocks as $stock) {
+            if ($stock->is_disabled) continue;
             foreach ($stock->attributeOptions as $opt) {
                 if (!empty($stock->image)) {
                     $valueImageMap[$opt->attribute_value_id] = $stock->image;
@@ -27,260 +26,431 @@
             }
         }
 
-        // $selectedAttributes expected as ['Size' => 'M', 'Color' => 'Blue'] etc.
-        $selectedAttributes = $selectedAttributes ?? [];
-        $attributeErrors = $attributeErrors ?? [];
+        $hasVariants = !empty($groupedAttributes);
     @endphp
 
-    @if($productStocks->count() != 0)
-        <div class="tf-product-variant">
+    {{-- Variant Selects --}}
+    @if ($hasVariants)
+        @foreach ($groupedAttributes as $attribute_id => $values)
             @php
-                $ordered = [];
-                $colorAttrId = null;
-                foreach ($groupedAttributes as $aid => $vals) {
-                    $attr = $attributesList[$aid] ?? null;
-                    if (!$attr) continue;
-                    if (strtolower($attr->attr_name) === 'color') {
-                        $colorAttrId = $aid;
-                        continue;
-                    }
-                    $ordered[$aid] = $vals;
-                }
-                if ($colorAttrId) {
-                    $ordered[$colorAttrId] = $groupedAttributes[$colorAttrId];
-                }
+                $attribute = $attributesList[$attribute_id] ?? null;
+                $attributeName = $attribute->attr_name ?? 'Option';
+                $selectedValue = $selectedAttributes[$attributeName] ?? null;
+                $isSize = strtolower($attributeName) === 'size';
             @endphp
 
-            @foreach ($ordered as $attribute_id => $values)
-                @php
-                    $attribute = $attributesList[$attribute_id] ?? null;
-                    if (!$attribute) continue;
-                    $attrName = $attribute->attr_name;
-                    $selectedValue = $selectedAttributes[$attrName] ?? null;
-                @endphp
+            @if ($attribute && !empty($values))
+                <div class="variant-section">
 
-                @if (strtolower($attrName) === 'color')
-                    {{-- ================= COLOR DESIGN (exact given markup) ================= --}}
-                    <div class="variant-picker-item variant-color">
-                        <div class="variant-picker-label">
-                            <div class="h4 fw-semibold">
-                                Colors
-                                <span class="variant-picker-label-value value-currentColor">{{ $selectedValue ?? '' }}</span>
-                            </div>
-                        </div>
+                    {{-- Label + Size Chart Button --}}
+                    <div style="display:flex; align-items:center; gap:10px; margin-bottom:8px;justify-content:space-between;">
+                        <label class="variant-label" style="margin-bottom:0;">Select {{ $attributeName }}</label>
 
-                        <div class="variant-picker-values">
-                            @foreach ($values as $optionId => $value)
-                                @if ($value)
-                                    @php
-                                        // determine background (hex/class/text)
-                                        $bg = $value->option ?? $value->attr_value;
-                                        $imgPath = $valueImageMap[$value->id] ?? null;
-                                        $imgUrl = $imgPath ? asset($imgPath) : null;
-                                        $isActive = ($selectedValue == $value->attr_value);
-                                    @endphp
-
-                                    <div class="hover-tooltip tooltip-bot color-btn {{ $isActive ? 'active' : '' }}"
-                                        data-attribute="{{ $attrName }}"
-                                        data-value="{{ $value->attr_value }}"
-                                        data-image="{{ $imgUrl ?? '' }}"
-                                        @if(method_exists($this, 'emit')) wire:click="$emit('selectAttribute', '{{ $attrName }}', '{{ $value->attr_value }}')" @endif>
-                                        <span class="check-color" style="background: {{ $bg }};"></span>
-                                        <span class="tooltip">{{ $value->attr_value }}</span>
-                                    </div>
-                                @endif
-                            @endforeach
-                        </div>
-
-                        @if (!empty($attributeErrors[$attrName]))
-                            <div class="text-danger mt-1">{{ $attributeErrors[$attrName] }}</div>
+                        @if ($isSize && $product->short_description && $product->short_description != '<p><br></p>')
+                            <button type="button" class="sc-size-chart-btn" onclick="scOpenSizeChart()">
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2">
+                                    <path d="M3 6h18M3 12h18M3 18h18" />
+                                </svg>
+                                Size Chart
+                            </button>
                         @endif
                     </div>
 
-                @else
-                    {{-- ================= SIZE / OTHER ATTRIBUTES (exact given markup) ================= --}}
-                    <div class="variant-picker-item variant-size">
-                        <div class="variant-picker-label">
-                            <div class="h4 fw-semibold">
-                                {{ $attrName }}
-                                <span class="variant-picker-label-value value-currentSize">{{ $selectedValue ?? '' }}</span>
-                            </div>
-                            {{-- optional: keep size-guide only for Size attribute --}}
-                            @if (strtolower($attrName) === 'size')
-                                {{-- <a href="#size-guide" data-bs-toggle="modal" class="size-guide link h6 fw-medium">
-                                    <i class="icon icon-ruler"></i>
-                                    Size Guide
-                                </a> --}}
-                            @endif
-                        </div>
-
-                        <div class="variant-picker-values">
-                            @foreach ($values as $optionId => $value)
-                                @if ($value)
-                                    @php
-                                        $imgPath = $valueImageMap[$value->id] ?? null;
-                                        $imgUrl = $imgPath ? asset($imgPath) : null;
-                                        $isActive = ($selectedValue == $value->attr_value);
-                                    @endphp
-
-                                    <span class="size-btn {{ $isActive ? 'active' : '' }}"
-                                        data-attribute="{{ $attrName }}"
+                    {{-- Variant Buttons --}}
+                    <div class="variant-options">
+                        @foreach ($values as $optionId => $value)
+                            @if ($value)
+                                @php
+                                    $matchedStock = $productStocks->first(function ($stock) use ($value) {
+                                        return $stock->attributeOptions->contains('attribute_value_id', $value->id);
+                                    });
+                                    $isOutOfStock = $matchedStock && $matchedStock->quantity <= 0;
+                                    $isSelected   = ($selectedAttributes[$attributeName] ?? null) === $value->attr_value;
+                                    $stockQty     = $matchedStock ? (int) $matchedStock->quantity : 0;
+                                    $isDisabled   = $matchedStock && $matchedStock->is_disabled;
+                                    $isOutOfStock = $stockQty <= 0;
+                                @endphp
+                                @if(!$isDisabled)    
+                                    <button type="button"
+                                        class="variant-btn {{ $isSelected ? 'selected' : '' }} {{ $isOutOfStock ? 'disabled-variant' : '' }}"
+                                        @if($isOutOfStock) disabled @endif
+                                        wire:click="{{ $isOutOfStock ? '' : "selectAttribute('{$attributeName}', '{$value->attr_value}')" }}"
+                                        data-attribute-name="{{ $attributeName }}"
                                         data-value="{{ $value->attr_value }}"
                                         data-image="{{ $imgUrl ?? '' }}"
-                                        @if(method_exists($this, 'emit')) wire:click="$emit('selectAttribute', '{{ $attrName }}', '{{ $value->attr_value }}')" @endif>
+                                        onclick="{{ $isOutOfStock ? 'return false;' : 'scHandleVariantClick(this)' }}">
                                         {{ $value->attr_value }}
-                                    </span>
+                                    </button>
                                 @endif
-                            @endforeach
-                        </div>
-
-                        @if (!empty($attributeErrors[$attrName]))
-                            <div class="text-danger mt-1">{{ $attributeErrors[$attrName] }}</div>
-                        @endif
+                            @endif
+                        @endforeach
                     </div>
-                @endif
 
-            @endforeach
-        </div>
-    @endif
+                    {{-- Validation Error --}}
+                    @if (!empty($attributeErrors[$attributeName]))
+                        <div class="text-danger mt-1" style="font-size:12px">
+                            {{ $attributeErrors[$attributeName] }}
+                        </div>
+                    @endif
 
-    <div class="tf-product-total-quantity">
-        <div class="group-btn">
-            <div class="wg-quantity" wire:ignore>
-                <button type="button" class="btn-quantity btn-decrease" aria-label="Decrease quantity">
-                    <i class="icon icon-minus"></i>
-                </button>
-
-                <input
-                    class="quantity-product"
-                    type="text"
-                    wire:model.lazy="quantity"
-                    value="{{ $quantity }}"
-                    data-quantity="{{ $product->quantity }}"
-                    inputmode="numeric"
-                    pattern="[0-9]*"
-                />
-
-                <button type="button" class="btn-quantity btn-increase" aria-label="Increase quantity">
-                    <i class="icon icon-plus"></i>
-                </button>
-            </div>
-
-            <livewire:frontend.wishlist.towishlist :productId="$product->id"></livewire>
-            <livewire:frontend.wishlist.add-wishlist></livewire>
-
-            @if($product->stock_out == 1 || $product->quantity == 0)
-                <button class="tf-btn btn-add-to-cart" style="background: #626262;" disabled>
-                    Out Of Stock
-                </button>
-            @elseif ($product->pre_order == 1)
-                <button class="tf-btn btn-add-to-cart" style="background: #626262;" disabled>
-                    Up Coming
-                </button>
-            @else
-                <div class="btnBuy d-flex gap-2">
-                    <button class="tf-btn animate-btn btn-add-to-cart" wire:click="addToCart">
-                        <span wire:loading.remove wire:target="addToCart">ADD TO CART</span>
-                        <span wire:loading wire:target="addToCart" class="formloader"></span>
-                    </button>
-                    <button class="tf-btn btn-primary" wire:click="directCheckout">
-                        <span wire:loading.remove wire:target="directCheckout">BUY IT NOW</span>
-                        <span wire:loading wire:target="directCheckout" class="formloader"></span>
-                    </button>
                 </div>
             @endif
+        @endforeach
+    @endif
 
-
+    {{-- Qty + Cart --}}
+    <div class="qty-cart" style="flex-wrap: wrap;">
+        <div class="qty-control">
+            <button class="qty-btn" id="sc-qty-minus" onclick="scChangeQty(-1)">-</button>
+           <input class="qty-input" type="text" id="sc-qty" :model="quantity"  value="1" min="1"  data-max="{{ $selectedStockQty > 0 ? $selectedStockQty : $product->quantity }}"
+                    inputmode="numeric" pattern="[0-9]*">
+            <button class="qty-btn" id="sc-qty-plus" onclick="scChangeQty(1)">+</button>
         </div>
 
+        @if ($product->stock_out == 1 || $product->quantity == 0)
+            <button class="add-to-cart" disabled style="opacity:0.5;cursor:not-allowed">
+                Out of stock
+            </button>
+        @else
+            <div>
+                <button class="add-to-cart" id="sc-add-to-cart" style="width: 50px;padding:0 !important;margin-right: 5px;" wire:click="addToCart"
+                    wire:loading.attr="disabled">
+                    <span wire:loading.remove wire:target="addToCart"><i class="bi bi-bag-check"></i></span>
+                    <span wire:loading wire:target="addToCart" class="formloader"></span>
+                </button>
+                <button class="add-to-cart" wire:click="directCheckout" style="width: 160px;">
+                    <span wire:loading.remove wire:target="directCheckout">Buy Now</span>
+                    <span wire:loading wire:target="directCheckout" class="formloader"></span>
+                </button>
+            </div>
+        @endif
     </div>
 
+    <style>
+        /* Remove number input arrows */
+        .qty-input {
+            -webkit-appearance: none;
+            -moz-appearance: textfield;
+            appearance: none;
+        }
+
+        .qty-input::-webkit-inner-spin-button,
+        .qty-input::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+    </style>
 
     @section('addcart-js')
-        {{-- qty increse & decrease --}}
         <script>
-            document.addEventListener("DOMContentLoaded", () => {
-                const quantityInputs = document.querySelectorAll('.wg-quantity');
+            // Store quantity value to prevent reset
+            let currentQtyValue = 1;
 
-                quantityInputs.forEach((wrapper) => {
-                    const addButton = wrapper.querySelector('.btn-increase');
-                    const subButton = wrapper.querySelector('.btn-decrease');
-                    const inputEl = wrapper.querySelector('.quantity-product');
-
-                    if (inputEl && inputEl.dataset.quantity) {
-                        const maxQuantity = parseInt(inputEl.dataset.quantity);
-
-                        // Update quantity display
-                        function updateQuantityDisplay() {
-                            const currentQuantity = document.getElementById('current-quantity');
-                            if (currentQuantity) {
-                                currentQuantity.textContent = inputEl.value;
-                            }
-                        }
-
-                        // Update button states
-                        function updateButtonStates() {
-                            const currentValue = Number(inputEl.value);
-                            addButton.disabled = (currentValue >= maxQuantity);
-                            subButton.disabled = (currentValue <= 1);
-                        }
-
-                        // Increase quantity
-                        addButton?.addEventListener('click', function() {
-                            let currentValue = Number(inputEl.value);
-                            if (currentValue < maxQuantity) {
-                                inputEl.value = currentValue + 1;
-                                // Dispatch input event for Livewire
-                                inputEl.dispatchEvent(new Event('input', { bubbles: true }));
-                                inputEl.dispatchEvent(new Event('change', { bubbles: true }));
-                            }
-                            updateButtonStates();
-                            updateQuantityDisplay();
-                        });
-
-                        // Decrease quantity
-                        subButton?.addEventListener('click', function() {
-                            let currentValue = Number(inputEl.value);
-                            if (currentValue > 1) {
-                                inputEl.value = currentValue - 1;
-                                // Dispatch input event for Livewire
-                                inputEl.dispatchEvent(new Event('input', { bubbles: true }));
-                                inputEl.dispatchEvent(new Event('change', { bubbles: true }));
-                            }
-                            updateButtonStates();
-                            updateQuantityDisplay();
-                        });
-
-                        // Handle direct input
-                        inputEl.addEventListener('input', function() {
-                            let value = Number(inputEl.value);
-
-                            // Validate input
-                            if (isNaN(value) || value < 1) {
-                                inputEl.value = 1;
-                            } else if (value > maxQuantity) {
-                                inputEl.value = maxQuantity;
-                            }
-
-                            updateButtonStates();
-                            updateQuantityDisplay();
-                        });
-
-                        // Handle blur event for final validation
-                        inputEl.addEventListener('blur', function() {
-                            if (inputEl.value === '' || isNaN(Number(inputEl.value))) {
-                                inputEl.value = 1;
-                            }
-                            updateButtonStates();
-                            updateQuantityDisplay();
-                        });
-
-                        // Initial button state
-                        updateButtonStates();
-                        updateQuantityDisplay();
-                    }
-                });
+            window.addEventListener('DOMContentLoaded', function() {
+                initVariantControls();
             });
+
+            document.addEventListener('livewire:load', function() {
+                initVariantControls();
+            });
+
+            document.addEventListener('livewire:update', function() {
+                initVariantControls();
+            });
+
+            function initVariantControls() {
+                const hasVariants = {{ $hasVariants ? 'true' : 'false' }};
+
+                function checkAllSelected() {
+                    if (!hasVariants) return true;
+                    const selects = document.querySelectorAll('[id^="sc-select-"]');
+                    let allSelected = true;
+                    selects.forEach(select => {
+                        if (!select.value) allSelected = false;
+                    });
+                    return allSelected;
+                }
+
+                function updateUI() {
+                    const allSelected = checkAllSelected();
+                    const qtyInput = document.getElementById('sc-qty');
+                    const addToCartBtn = document.getElementById('sc-add-to-cart');
+                    const buyNowBtn = document.querySelector('[wire\\:click="directCheckout"]'); // Select Buy Now button
+                    const minusBtn = document.getElementById('sc-qty-minus');
+                    const plusBtn = document.getElementById('sc-qty-plus');
+
+                    if (addToCartBtn) {
+                        if (allSelected) {
+                            addToCartBtn.disabled = false;
+                            addToCartBtn.style.opacity = '1';
+                            addToCartBtn.style.cursor = 'pointer';
+                        } else {
+                            addToCartBtn.disabled = true;
+                            addToCartBtn.style.opacity = '0.5';
+                            addToCartBtn.style.cursor = 'not-allowed';
+                        }
+                    }
+
+                    // Update Buy Now button state
+                    if (buyNowBtn) {
+                        if (allSelected) {
+                            buyNowBtn.disabled = false;
+                            buyNowBtn.style.opacity = '1';
+                            buyNowBtn.style.cursor = 'pointer';
+                        } else {
+                            buyNowBtn.disabled = true;
+                            buyNowBtn.style.opacity = '0.5';
+                            buyNowBtn.style.cursor = 'not-allowed';
+                        }
+                    }
+
+                    // Update quantity controls
+                    if (qtyInput) {
+                        if (allSelected) {
+                            qtyInput.disabled = false;
+                        } else {
+                            qtyInput.disabled = true;
+                        }
+                    }
+
+                    if (minusBtn) {
+                        if (allSelected) {
+                            minusBtn.disabled = false;
+                            updateQtyButtons(); // Re-enable with proper state
+                        } else {
+                            minusBtn.disabled = true;
+                        }
+                    }
+
+                    if (plusBtn) {
+                        if (allSelected) {
+                            plusBtn.disabled = false;
+                            updateQtyButtons(); // Re-enable with proper state
+                        } else {
+                            plusBtn.disabled = true;
+                        }
+                    }
+                }
+
+                function updateQtyButtons() {
+                    const qtyInput = document.getElementById('sc-qty');
+                    if (!qtyInput) return;
+
+                    let currentQty = parseInt(qtyInput.value) || 1;
+                    const maxQty = parseInt(qtyInput.dataset.max) || 999;
+                    const minusBtn = document.getElementById('sc-qty-minus');
+                    const plusBtn = document.getElementById('sc-qty-plus');
+
+                    if (minusBtn) minusBtn.disabled = (currentQty <= 1);
+                    if (plusBtn) plusBtn.disabled = (currentQty >= maxQty);
+
+                    // Store current quantity
+                    currentQtyValue = currentQty;
+                }
+
+                function restoreQuantity() {
+                    const qtyInput = document.getElementById('sc-qty');
+                    if (qtyInput && currentQtyValue > 1) {
+                        qtyInput.value = currentQtyValue;
+                        updateQtyButtons();
+                    }
+                }
+
+                window.scHandleSelectChange = function(selectElement) {
+                    const attrName = selectElement.getAttribute('data-attribute-name');
+                    const attrValue = selectElement.value;
+                    const attrId = selectElement.getAttribute('data-attribute-id');
+
+                    const clearLink = document.getElementById('sc-clear-' + attrId);
+                    if (clearLink) {
+                        clearLink.style.display = attrValue ? 'inline' : 'none';
+                    }
+
+                    const selectedOption = selectElement.options[selectElement.selectedIndex];
+                    const imgUrl = selectedOption.getAttribute('data-image');
+                    if (imgUrl) {
+                        const mainImg = document.getElementById('sc-main-img');
+                        const mainLink = document.getElementById('sc-main-link');
+                        if (mainImg) {
+                            mainImg.src = imgUrl;
+                            mainImg.dataset.zoom = imgUrl;
+                        }
+                        if (mainLink) mainLink.href = imgUrl;
+                    }
+
+                    updateUI();
+
+                    // Don't reset quantity, just restore previous value
+                    restoreQuantity();
+                };
+
+                window.scClearSelect = function(attrId, attrName) {
+                    const select = document.getElementById('sc-select-' + attrId);
+                    if (select) {
+                        select.value = '';
+                        const event = new Event('change', {
+                            bubbles: true
+                        });
+                        select.dispatchEvent(event);
+                    }
+                };
+
+                window.scChangeQty = function(direction) {
+                    const qtyInput = document.getElementById('sc-qty');
+                    if (!qtyInput) return;
+
+                    // Check if buttons are disabled (either add to cart or buy now - both indicate variant not selected)
+                    const addToCartBtn = document.getElementById('sc-add-to-cart');
+                    const buyNowBtn = document.querySelector('[wire\\:click="directCheckout"]');
+                    if ((addToCartBtn && addToCartBtn.disabled) || (buyNowBtn && buyNowBtn.disabled)) return;
+
+                    let currentQty = parseInt(qtyInput.value) || 1;
+                    const maxQty = parseInt(qtyInput.dataset.max) || 999;
+
+                    let newQty = currentQty + direction;
+                    if (newQty < 1) newQty = 1;
+                    if (newQty > maxQty) newQty = maxQty;
+
+                    if (newQty !== currentQty) {
+                        qtyInput.value = newQty;
+                        currentQtyValue = newQty;
+                        qtyInput.dispatchEvent(new Event('input'));
+                        updateQtyButtons();
+
+                        // Update Livewire property
+                        if (window.livewire) {
+                            @this.set('quantity', newQty);
+                        }
+                    }
+                };
+
+                // Handle manual input
+                const qtyInput = document.getElementById('sc-qty');
+                if (qtyInput) {
+                    qtyInput.addEventListener('input', function(e) {
+                        let val = parseInt(this.value) || 1;
+                        const max = parseInt(this.dataset.max) || 999;
+                        if (val < 1) val = 1;
+                        if (val > max) val = max;
+                        if (val !== parseInt(this.value)) this.value = val;
+                        currentQtyValue = val;
+                        updateQtyButtons();
+
+                        // Update Livewire property
+                        if (window.livewire) {
+                            @this.set('quantity', val);
+                        }
+                    });
+
+                    // Allow only numbers
+                    qtyInput.addEventListener('keypress', function(e) {
+                        if (!/[0-9]/.test(e.key)) {
+                            e.preventDefault();
+                        }
+                    });
+                }
+
+                // For non-variant products, enable all controls by default
+                if (!hasVariants) {
+                    const addToCartBtn = document.getElementById('sc-add-to-cart');
+                    const buyNowBtn = document.querySelector('[wire\\:click="directCheckout"]');
+                    const qtyInput = document.getElementById('sc-qty');
+                    const minusBtn = document.getElementById('sc-qty-minus');
+                    const plusBtn = document.getElementById('sc-qty-plus');
+
+                    if (addToCartBtn) {
+                        addToCartBtn.disabled = false;
+                        addToCartBtn.style.opacity = '1';
+                        addToCartBtn.style.cursor = 'pointer';
+                    }
+
+                    if (buyNowBtn) {
+                        buyNowBtn.disabled = false;
+                        buyNowBtn.style.opacity = '1';
+                        buyNowBtn.style.cursor = 'pointer';
+                    }
+
+                    if (qtyInput) qtyInput.disabled = false;
+                    if (minusBtn) minusBtn.disabled = false;
+                    if (plusBtn) plusBtn.disabled = false;
+
+                    // Update button states based on quantity
+                    updateQtyButtons();
+                } else {
+                    updateUI();
+                }
+
+                updateQtyButtons();
+                restoreQuantity();
+            }
+
+            function updateQtyButtons() {
+                const qtyInput = document.getElementById('sc-qty');
+                if (!qtyInput) return;
+
+                const currentQty = parseInt(qtyInput.value) || 1;
+                const maxQty = parseInt(qtyInput.dataset.max) || 999;
+                const minusBtn = document.getElementById('sc-qty-minus');
+                const plusBtn = document.getElementById('sc-qty-plus');
+
+                if (minusBtn) minusBtn.disabled = (currentQty <= 1);
+                if (plusBtn) plusBtn.disabled = (currentQty >= maxQty);
+            }
+
+            window.scHandleVariantClick = function(btn) {
+            const attrName  = btn.getAttribute('data-attribute-name');
+            const attrValue = btn.getAttribute('data-value');
+            const imgUrl    = btn.getAttribute('data-image');
+
+            document.querySelectorAll(`.variant-btn[data-attribute-name="${attrName}"]`).forEach(b => b.classList.remove('selected'));
+            btn.classList.add('selected');
+
+            if (imgUrl) {
+                const mainImg  = document.getElementById('sc-main-img');
+                const mainLink = document.getElementById('sc-main-link');
+                if (mainImg) {
+                    mainImg.src = imgUrl;
+                    mainImg.dataset.zoom = imgUrl;
+                }
+                if (mainLink) mainLink.href = imgUrl;
+            }
+
+            updateMaxQtyFromSelectedVariants();
+        };
+
+        function updateMaxQtyFromSelectedVariants() {
+            const selectedBtns = document.querySelectorAll('.variant-btn.selected');
+            let minQty = Infinity;
+
+            selectedBtns.forEach(btn => {
+                const stockQty = parseInt(btn.getAttribute('data-stock-qty')) || 0;
+                if (stockQty < minQty) {
+                    minQty = stockQty;
+                }
+            });
+
+            if (minQty === Infinity || minQty === 0) {
+                minQty = parseInt('{{ $product->quantity }}') || 0;
+            }
+
+            const qtyInput = document.getElementById('sc-qty');
+            if (qtyInput) {
+                qtyInput.dataset.max = minQty;
+
+                const currentQty = parseInt(qtyInput.value) || 1;
+                if (currentQty > minQty) {
+                    qtyInput.value = minQty > 0 ? minQty : 1;
+                    currentQtyValue = parseInt(qtyInput.value);
+
+                    if (window.livewire) {
+                        @this.set('quantity', parseInt(qtyInput.value));
+                    }
+                }
+
+                updateQtyButtons();
+            }
+        }
         </script>
     @endsection
 </div>
