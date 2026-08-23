@@ -58,9 +58,14 @@ class Subcategory extends Model
         return $this->hasMany(Subsubcategory::class);
     }
     
-    public function product()
+    public function products()
     {
-        return $this->hasMany(Product::class, 'subcategory_id');
+        return $this->belongsToMany(Product::class, 'product_subcategories');
+    }
+
+    public function activeProducts()
+    {
+        return $this->products()->activeProducts();
     }
 
 }

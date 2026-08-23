@@ -17,5 +17,5 @@ class Attribute extends Model
     }
 
     // Add a model event to handle related records on deletion
-
+    
 }

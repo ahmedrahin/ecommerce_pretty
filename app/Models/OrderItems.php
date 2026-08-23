@@ -8,9 +8,9 @@ use Illuminate\Database\Eloquent\Model;
 class OrderItems extends Model
 {
     use HasFactory;
-    protected $table = 'order_items';
+    protected $table = 'order_items'; 
 
-    protected $guarded = [];
+    protected $guarded = []; 
 
     public function order()
     {
@@ -21,12 +21,7 @@ class OrderItems extends Model
     {
         return $this->belongsTo(Product::class);
     }
-
-    public function stock()
-    {
-        return $this->belongsTo(ProductStock::class, 'product_stock_id');
-    }
-
+    
     public function orderItemVariations()
     {
         return $this->hasMany(OrderItemsVariant::class, 'order_item_id');

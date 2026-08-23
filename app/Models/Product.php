@@ -8,6 +8,7 @@ use Illuminate\Support\Str;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Cache;
 
 class Product extends Model
 {
@@ -15,6 +16,21 @@ class Product extends Model
 
     protected $guarded = [];
 
+    protected static function booted()
+    {
+        static::saved(function () {
+            Cache::forget('home_featured_products');
+            Cache::forget('home_new_arrivals');
+            Cache::forget('home_best_selling');
+        });
+
+        static::deleted(function () {
+            Cache::forget('home_featured_products');
+            Cache::forget('home_new_arrivals');
+            Cache::forget('home_best_selling');
+        });
+    }
+    
     public function orderItems()
     {
         return $this->hasMany(OrderItems::class)
@@ -108,6 +124,17 @@ class Product extends Model
         return $this->belongsTo(Subsubcategory::class);
     }
 
+    public function subcategories()
+    {
+        return $this->belongsToMany(Subcategory::class, 'product_subcategories');
+    }
+    
+    // Many-to-many relationship with Subsubcategory
+    public function subsubcategories()
+    {
+        return $this->belongsToMany(Subsubcategory::class, 'product_subsubcategories');
+    }
+
     public function galleryImages()
     {
         return $this->hasMany(GalleryImage::class);
@@ -116,11 +143,6 @@ class Product extends Model
     public function productStock()
     {
         return $this->hasMany(ProductStock::class);
-    }
-
-    public function wishlists()
-    {
-        return $this->hasMany(Wishlist::class);
     }
 
     public function specifications()

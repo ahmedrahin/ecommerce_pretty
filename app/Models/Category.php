@@ -5,14 +5,27 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Cache;
 
 class Category extends Model
 {
     use HasFactory;
 
     protected $fillable = [
-        'name', 'slug', 'description', 'status', 'image'
+        'name', 'slug', 'description', 'status', 'image', 'sort_order'
     ];
+
+    protected static function booted()
+    {
+        static::saved(function () {
+            Cache::forget('home_categories');
+            Cache::forget(config('dbcachekey.category'));
+        });
+        static::deleted(function () {
+            Cache::forget('home_categories');
+            Cache::forget(config('dbcachekey.category'));
+        });
+    }
 
     public static function boot()
     {
@@ -79,6 +92,11 @@ class Category extends Model
     public function product()
     {
         return $this->hasMany(Product::class);
+    }
+
+    public function activeProducts()
+    {
+        return $this->hasMany(Product::class)->activeProducts();
     }
 
 }

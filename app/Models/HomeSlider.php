@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Cache;
 
 class HomeSlider extends Model
 {
@@ -11,8 +12,9 @@ class HomeSlider extends Model
 
     protected $guarded = [];
 
-    public function content()
+    protected static function booted()
     {
-        return $this->hasOne(BannerContent::class, 'home_slider_id');
+        static::saved(fn() => Cache::forget('home_banners'));
+        static::deleted(fn() => Cache::forget('home_banners'));
     }
 }

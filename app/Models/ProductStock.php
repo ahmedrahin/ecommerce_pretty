@@ -12,6 +12,10 @@ class ProductStock extends Model
 
     protected $guarded = [];
 
+    protected $casts = [
+        'is_disabled' => 'boolean',
+    ];
+
     public function product()
     {
         return $this->belongsTo(Product::class);
