@@ -282,7 +282,6 @@ class ProductEditController extends Controller
                 $stockData = [
                     'quantity' => $variation['quantity'] ?? 0,
                     'price' => $variation['price'] ?? $product->base_price,
-                    'printful_variant_id' => $variation['printful_variant_id'] ?? null,
                 ];
 
                 if ($imagePath) {
@@ -313,7 +312,6 @@ class ProductEditController extends Controller
                     'quantity' => $variation['quantity'] ?? 0,
                     'price' => $variation['price'] ?? $product->base_price,
                     'image' => $imagePath,
-                    'printful_variant_id' => $variation['printful_variant_id'] ?? null,
                 ]);
 
                 // Create attribute options for new variation
@@ -403,29 +401,6 @@ class ProductEditController extends Controller
 
             $file->move(public_path('uploads/product_images'), $fileName);
             $data['back_image'] = 'uploads/product_images/' . $fileName;
-        }
-
-
-        /* ================= PRINTFUL LOGO ================= */
-        if ($request->hasRemovePLogo == 1) {
-
-            if ($product->p_logo && file_exists(public_path($product->p_logo))) {
-                unlink(public_path($product->p_logo));
-            }
-
-            $data['p_logo'] = null;
-
-        } elseif ($request->hasFile('p_logo')) {
-
-            if ($product->p_logo && file_exists(public_path($product->p_logo))) {
-                unlink(public_path($product->p_logo));
-            }
-
-            $file = $request->file('p_logo');
-            $fileName = $this->makeSafeFileName($file, 'p_logo_');
-
-            $file->move(public_path('uploads/product_images'), $fileName);
-            $data['p_logo'] = 'uploads/product_images/' . $fileName;
         }
 
         return $data;

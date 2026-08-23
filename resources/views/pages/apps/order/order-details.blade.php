@@ -126,21 +126,6 @@
                                 <!--begin::Table-->
                                 <table class="table align-middle table-row-bordered mb-0 fs-6 gy-5 min-w-300px">
                                     <tbody class="fw-semibold text-gray-600">
-                                        @if($order->printful_order_id)
-                                            <tr>
-                                                <td class="text-muted">
-                                                    <div class="d-flex align-items-center">
-                                                        <i class="ki-duotone ki-file fs-2 me-2">
-                                                            <span class="path1"></span>
-                                                            <span class="path2"></span>
-                                                        </i>
-                                                        Printful Order ID
-                                                    </div>
-                                                </td>
-                                                <td class="fw-bold text-end">
-                                                    #PF{{ $order->printful_order_id }}</td>
-                                            </tr>
-                                        @endif
                                         <tr>
                                             <td class="text-muted">
                                                 <div class="d-flex align-items-center">

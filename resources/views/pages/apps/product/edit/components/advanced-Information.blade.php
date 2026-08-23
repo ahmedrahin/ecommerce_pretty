@@ -78,11 +78,6 @@
                                                 </div>
                                             </div>
                                         </div>
-                                        <div class="col-md-6">
-                                            <label class="form-label fw-semibold">Printful Variant Id</label>
-                                            <input type="number" min="0" class="form-control"
-                                                name="variations[{{ $index }}][printful_variant_id]" placeholder="Enter Printful Variant Id" value="{{ $productStock->printful_variant_id ?? '' }}" />
-                                        </div>
                                     @endforeach
                                 </div>
 
@@ -163,10 +158,6 @@
                                             </div>
                                         </div>
                                     </div>
-                                    <div class="col-md-6">
-                                        <label class="form-label fw-semibold">Printful Variant Id</label>
-                                        <input type="number" step="0.01" min="0" class="form-control"
-                                            name="variations[0][printful_variant_id]" placeholder="Enter Printful Variant Id" value="" />
                                 @endforeach
                             </div>
                             
@@ -350,11 +341,6 @@
                                             </select>
                                         </div>
                                     </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <label class="form-label fw-semibold">Printful Variant Id</label>
-                                    <input type="number" min="0" class="form-control"
-                                        name="variations[${counter}][printful_variant_id]" placeholder="Enter Printful Variant Id" value="" />
                                 </div>
                             @endforeach
                         </div>

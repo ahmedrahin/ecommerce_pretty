@@ -7,12 +7,11 @@ use App\Models\{
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 use App\Jobs\OrderSent;
-use App\Services\PrintfulService;
 use Illuminate\Support\Facades\DB;
 
 class OrderService
 {
-    public function __construct(private PrintfulService $printfulService) {}
+    public function __construct() {}
 
     public function placeOrder($context, array $cart, string $paymentType = 'stripe', $paidAmount = null)
     {
@@ -24,16 +23,6 @@ class OrderService
 
             $this->saveOrderItems($order, $cart);
             $this->afterOrderPlaced($order);
-
-            try {
-                $printfulSuccess = $this->printfulService->createOrder($order);
-                
-                if (!$printfulSuccess) {
-                    throw new \Exception('Please check shipping details including ZIP code.');
-                }
-            } catch (\Exception $e) {
-                throw new \Exception($e->getMessage());
-            }
 
             return $order;
         });

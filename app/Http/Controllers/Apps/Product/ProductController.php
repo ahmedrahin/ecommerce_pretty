@@ -246,13 +246,6 @@ class ProductController extends Controller
             $data['back_image'] = 'uploads/product_images/' . $fileName;
         }
 
-        if ($request->hasFile('p_logo')) {
-            $file = $request->file('p_logo');
-            $fileName = $cleanName($file, 'p_logo_');
-            $file->move(public_path('uploads/product_images'), $fileName);
-            $data['p_logo'] = 'uploads/product_images/' . $fileName;
-        }
-
         return $data;
     }
 
@@ -341,7 +334,6 @@ class ProductController extends Controller
             $stock = $product->productStock()->create([
                 'sku_code' => $variation['sku_code'] ?? null,
                 'quantity' => $variation['quantity'] ?? 0,
-                'printful_variant_id' => $variation['printful_variant_id'] ?? null,
                 'price' => $variation['price'] ?? $product->base_price,
                 'image'    => $imagePath,
             ]);

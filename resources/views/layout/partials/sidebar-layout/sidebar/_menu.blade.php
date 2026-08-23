@@ -285,14 +285,6 @@
                             </span>
                             <span class="menu-title">Product Variant</span>
                         </a>
-
-                        <a class="menu-link {{ request()->routeIs('product-management.printful*') ? 'active' : '' }}"
-                            href="{{ route('product-management.printful') }}">
-                            <span class="menu-bullet">
-                                <span class="bullet bullet-dot"></span>
-                            </span>
-                            <span class="menu-title">Printful Products</span>
-                        </a>
                         <!--end:Menu link-->
                         {{-- <a class="menu-link {{ request()->routeIs('product-management.full.compare*') ? 'active' : '' }}"
                             href="{{ route('product-management.full.compare') }}">

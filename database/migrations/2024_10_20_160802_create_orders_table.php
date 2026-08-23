@@ -15,7 +15,6 @@ return new class extends Migration
             $table->id();
             $table->unsignedBigInteger('user_id')->nullable();
             $table->string('order_id')->unique();
-            $table->string('printful_order_id')->nullable();
             $table->string('user_type')->comment('Author and Customer')->default('customer');
             $table->string('name')->nullable();
             $table->string('email')->nullable();

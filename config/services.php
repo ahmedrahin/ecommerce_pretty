@@ -48,9 +48,5 @@ return [
         'key' => env('STRIPE_KEY'),
         'secret' => env('STRIPE_SECRET'),
     ],
-    'printful' => [
-        'key' => env('PRINTFUL_API_KEY'),
-        'base_url' => 'https://api.printful.com',
-    ],
 
 ];

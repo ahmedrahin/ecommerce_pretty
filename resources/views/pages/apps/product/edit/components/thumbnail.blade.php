@@ -127,78 +127,6 @@
     </div>
 </div>
 
-{{-- printful logo --}}
-<div class="card card-flush py-4 pb-0">
-    <div class="card-header">
-        <div class="card-title">
-            <h2>Printful Logo</h2>
-        </div>
-    </div>
-    <div class="card-body text-center pt-0">
-        @if(!is_null($product->p_logo))
-        @php
-        $p_logo = asset($product->p_logo);
-        @endphp
-        @else
-        @php
-        $p_logo = asset('assets/media/svg/files/blank-image.svg');
-        @endphp
-        @endif
-
-        <style>
-            .printful-placeholder {
-                background-image: url('{{ $p_logo }}');
-            }
-
-            [data-bs-theme="dark"] .printful-placeholder {
-                background-image: url('{{ $p_logo }}');
-            }
-        </style>
-
-        <div class="image-input image-input-empty image-input-outline printful-placeholder mb-3"
-            data-kt-image-input="true">
-            <div class="image-input-wrapper w-150px h-150px"></div>
-
-            <!-- Change / Upload -->
-            <label class="btn btn-icon btn-circle btn-active-color-primary w-25px h-25px bg-body shadow"
-                data-kt-image-input-action="change" data-bs-toggle="tooltip" title="Upload logo">
-                <i class="ki-duotone ki-pencil fs-7">
-                    <span class="path1"></span>
-                    <span class="path2"></span>
-                </i>
-                <input type="file" name="p_logo" accept=".png, .jpg, .jpeg" />
-                <input type="hidden" name="avatar_remove" />
-            </label>
-
-            <!-- Cancel -->
-            <span class="btn btn-icon btn-circle btn-active-color-primary w-25px h-25px bg-body shadow"
-                id="cancel_p_logo" data-kt-image-input-action="cancel" data-bs-toggle="tooltip" title="Cancel logo">
-                <i class="ki-duotone ki-cross fs-2">
-                    <span class="path1"></span>
-                    <span class="path2"></span>
-                </i>
-            </span>
-
-            <!-- Remove -->
-            @if(!is_null($product->p_logo))
-            <span class="btn btn-icon btn-circle btn-active-color-primary w-25px h-25px bg-body shadow"
-                id="remove_p_logo" title="Remove logo">
-                <i class="ki-duotone ki-cross fs-2">
-                    <span class="path1"></span>
-                    <span class="path2"></span>
-                </i>
-            </span>
-            <input type="hidden" name="hasRemovePLogo" id="hasRemovePLogo">
-            @endif
-        </div>
-        <div class="text-muted fs-7">
-            Set the Printful logo. Only *.png, *.jpg and *.jpeg image files are accepted
-        </div>
-        <span id="p_logo_error" class="text-danger" style="padding-bottom: 0 !important"></span>
-    </div>
-</div>
-
-
 <script>
     document.addEventListener('DOMContentLoaded', function() {
        
@@ -226,33 +154,6 @@
                 document.getElementById('hasBackRemove').value = null;
             });
         @endif
-        
-        // Remove Printful logo
-        document.getElementById('remove_p_logo').addEventListener('click', function() {
-            var isDarkTheme = document.querySelector('[data-bs-theme="dark"]');
-            var placeholderImage = isDarkTheme
-                ? "{{ asset('assets/media/svg/files/blank-image-dark.svg') }}"
-                : "{{ asset('assets/media/svg/files/blank-image.svg') }}";
-
-            // শুধু Printful logo placeholder আপডেট
-            this.closest('.image-input').style.backgroundImage = 'url("' + placeholderImage + '")';
-
-            document.getElementById('hasRemovePLogo').value = 1;
-            this.remove();
-        });
-
-        // Cancel Printful logo change
-        document.getElementById('cancel_p_logo').addEventListener('click', function() {
-            var removeBtn = document.getElementById('remove_p_logo');
-            if (removeBtn) removeBtn.style.display = 'flex';
-        });
-
-        // New Printful logo uploaded
-        document.querySelector('input[name="p_logo"]').addEventListener('change', function(){
-            var removeBtn = document.getElementById('remove_p_logo');
-            if (removeBtn) removeBtn.style.display = 'none';
-            document.getElementById('hasRemovePLogo').value = null;
-        });
         
     });
 </script>

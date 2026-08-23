@@ -19,7 +19,6 @@ use App\Http\Controllers\Apps\Product\BrandController;
 use App\Http\Controllers\Apps\Product\CategoryController;
 use App\Http\Controllers\Apps\Product\SubcategoryController;
 use App\Http\Controllers\Apps\Product\SubsubcategoryController;
-use App\Http\Controllers\Apps\Product\PrintfulProductController;
 use App\Http\Controllers\Apps\Product\ProductController;
 use App\Http\Controllers\Apps\Product\VariantController;
 use App\Http\Controllers\Apps\Order\ShippingController;
@@ -82,10 +81,6 @@ Route::middleware(['isAdmin'])->group(function () {
 
     // product management
     Route::name('product-management.')->group(function () {
-        Route::controller(PrintfulProductController::class)->group(function () {
-            Route::get('/printful-product', 'printful')->name('printful');
-            Route::get('/printful-product-details/{id}', 'printfulProductDetails')->name('printful.details');
-        });
         Route::controller(ProductController::class)->group(function () {
             // Apply middleware for permissions
             Route::get('/all-product', 'index')->name('index');
