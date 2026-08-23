@@ -102,7 +102,7 @@
         <div class="modal-dialog modal-dialog-centered mw-650px">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h2 class="fw-bold">Add New Selection</h2>
+                    <h2 class="fw-bold">Add New Product Comparison</h2>
                     <div class="btn btn-icon btn-sm btn-active-icon-primary" data-bs-dismiss="modal" aria-label="Close">
                         {!! getIcon('cross','fs-1') !!}
                     </div>
@@ -114,12 +114,12 @@
 
                             <!-- First Product -->
                             <div class="fv-row mb-7">
-                                <label class="fw-semibold fs-6 mb-2">Home Product</label>
+                                <label class="fw-semibold fs-6 mb-2">First Product</label>
                                 <select id="first_product_id" name="first_product_id"
                                     data-placeholder="Select first product" data-value="{{ $first_product_id ?? '' }}"
                                     class="form-select form-select-solid @error('first_product_id') is-invalid @enderror"
                                     wire:model.defer="first_product_id">
-                                    <option value="">Select home product</option>
+                                    <option value="">Select first product</option>
                                     @foreach ($products as $product)
                                     <option value="{{ $product->id }}">{{ $product->name }}</option>
                                     @endforeach
@@ -131,12 +131,12 @@
 
                             <!-- Second Product -->
                             <div class="fv-row mb-7">
-                                <label class="fw-semibold fs-6 mb-2">Away Product</label>
+                                <label class="fw-semibold fs-6 mb-2">Second Product</label>
                                 <select id="second_product_id" name="second_product_id"
                                     data-placeholder="Select second product" data-value="{{ $second_product_id ?? '' }}"
                                     class="form-select form-select-solid @error('second_product_id') is-invalid @enderror"
                                     wire:model.defer="second_product_id">
-                                    <option value="">Select away product</option>
+                                    <option value="">Select second product</option>
                                     @foreach ($products as $product)
                                     <option value="{{ $product->id }}">{{ $product->name }}</option>
                                     @endforeach

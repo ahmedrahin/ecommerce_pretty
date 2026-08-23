@@ -1,45 +1,52 @@
-<form class="account-details-form mt-4" wire:submit.prevent="ChnagePassword">
+<form class="account-details-form" wire:submit.prevent="ChnagePassword" style="margin-top: 50px;">
+    <div class="">
+        <h2 class="account-title type-semibold">Change Password</h2>
+        <div class="form_content site-change">
+            <!-- Current Password -->
+            <fieldset class="password-wrapper">
+                <input class="password-field @error('current_password') error_border @enderror" 
+                       type="password" 
+                       placeholder="Current password *" 
+                       autocomplete="off"
+                       wire:model="current_password"
+                       >
+                <span class="toggle-pass icon-show-password"></span>
+                @error('current_password')
+                    <div class="text-danger pt-2">{{ $message }}</div>
+                @enderror
+            </fieldset>
 
-    <div class="form-group required mb-3">
-        <label class="form-label">Current Password</label>
-        <input type="password"
-               placeholder="******"
-               autocomplete="off"
-               wire:model="current_password"
-               class="form-control @error('current_password') error-border @enderror">
-        @error('current_password')
-            <div class="text-danger pt-2">{{ $message }}</div>
-        @enderror
-    </div>
+            <!-- New Password -->
+            <fieldset class="password-wrapper">
+                <input class="password-field @error('new_password') error_border @enderror" 
+                       type="password" 
+                       placeholder="New password *" 
+                       autocomplete="off"
+                       wire:model="new_password"
+                       >
+                <span class="toggle-pass icon-show-password"></span>
+                @error('new_password')
+                    <div class="text-danger pt-2">{{ $message }}</div>
+                @enderror
+            </fieldset>
 
-    <!-- New Password -->
-    <div class="form-group required mb-3">
-        <label class="form-label">New Password</label>
-        <input type="password"
-               placeholder="Enter a new password"
-               autocomplete="off"
-               wire:model="new_password"
-               class="form-control @error('new_password') error-border @enderror">
-        @error('new_password')
-            <div class="text-danger pt-2">{{ $message }}</div>
-        @enderror
-    </div>
-
-    <!-- Confirm Password -->
-    <div class="form-group required mb-3">
-        <label class="form-label">Confirm Password</label>
-        <input type="password"
-               placeholder="Confirm new password"
-               autocomplete="off"
-               wire:model="new_password_confirmation"
-               class="form-control @error('new_password_confirmation') error-border @enderror">
-        @error('new_password_confirmation')
-            <div class="text-danger pt-2">{{ $message }}</div>
-        @enderror
+            <fieldset class="password-wrapper">
+                <input class="password-field @error('new_password_confirmation') error_border @enderror" 
+                       type="password" 
+                       placeholder="Confirm password *" 
+                       autocomplete="off"
+                       wire:model="new_password_confirmation"
+                       >
+                <span class="toggle-pass icon-show-password"></span>
+                @error('new_password_confirmation')
+                    <div class="text-danger pt-2">{{ $message }}</div>
+                @enderror
+            </fieldset>
+        </div>
     </div>
 
     <!-- Submit Button -->
-    <button type="submit" class="btn btn-primary" style="width: 180px;">
+    <button type="submit" class="tf-btn animate-btn btn-add-to-cart savePass">
         <span wire:loading.remove wire:target="ChnagePassword">Save Password</span>
         <span wire:loading wire:target="ChnagePassword" class="formloader"></span>
     </button>

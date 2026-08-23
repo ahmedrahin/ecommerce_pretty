@@ -1,7 +1,13 @@
 <div>
     @if($isInWishlist)
-        <span wire:click="$emit('removeFromWishlist', {{ $productId }})" style="color: var(--s-primary);"><i class="material-icons">bookmark</i> Unsave</span>
+        <button type="button" class="hover-tooltip box-icon btn-add-wishlist" wire:click="$emit('removeFromWishlist', {{ $productId }})">
+            <span class="icon icon-trash"></span>
+            <span class="tooltip">Remove Wishlist</span>
+        </button>
     @else
-        <span wire:click="$emit('get_id', {{ $productId }})"><i class="material-icons">bookmark_border</i> Save</span>
+        <button type="button" class="hover-tooltip box-icon btn-add-wishlist" wire:click="$emit('get_id', {{ $productId }})">
+            <span class="icon icon-heart"></span>
+            <span class="tooltip">Add to Wishlist</span>
+        </button>
     @endif
 </div>

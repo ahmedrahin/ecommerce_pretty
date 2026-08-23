@@ -3,21 +3,19 @@
 namespace App\Http\Livewire\Frontend\Order;
 
 use Livewire\Component;
-use App\Models\ShippingMethod;
-use App\Models\District;
-use App\Models\Order;
-use App\Models\Product;
-use App\Models\OrderHistory;
+use App\Models\{
+    Order, Product, State, ProductStock
+};
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
 use App\Models\Coupon;
-use App\Mail\OrderPlaced;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
-use App\Library\SslCommerz\SslCommerzNotification;
+use Illuminate\Http\Request;
 
 use App\Services\OrderService;
+use App\Services\StripeService;
 
 class Checkout extends Component
 {
@@ -25,23 +23,28 @@ class Checkout extends Component
     public $email;
     public $phone;
     public $shipping_address;
-    public $district_id;
     public $zip_code;
+    public $city;
+    public $district_id;
+    public $state_id;
     public $note;
     public $payment_type;
     public $selectedShippingMethodId;
-    public $selectedShippingCharge = 0 ;
+    public $selectedShippingMethodType;
+    public $selectedShippingCharge = 0;
 
     public $cart = [];
     public $quantities = [];
-    public $shippingMethods;
+    public $shippingMethods = [];
     public $couponCode;
     public $discountAmount = 0;
     public $appliedCoupon;
-    public $showCouponForm = false;
     private $cacheKey;
 
-    public $sslcommerzUrl ;
+    // shipping
+    public $country_code = 'US';
+    public $state_code;
+    public $states = [];
 
     protected $listeners = [
         'cartUpdated' => 'refreshCart',
@@ -55,22 +58,28 @@ class Checkout extends Component
     public function mount()
     {
         $this->loadCart();
-        $this->loadShippingMethods();
         $this->payment_type = 'cod';
 
         $this->appliedCoupon = session()->get('applied_coupon', null);
 
-        if( Auth::check() ){
+        // state list
+        $this->states = State::where('status', 1)->get();
+
+        if (Auth::check()) {
             $this->name = Auth::user()->name;
             $this->email = Auth::user()->email;
             $this->phone = Auth::user()->phone;
             $this->shipping_address = Auth::user()->address_line1;
+            $this->zip_code = Auth::user()->zipCode;
+            $this->city = Auth::user()->city;
         }
     }
 
     public function loadCart()
     {
+        // Retrieve the cart from the session
         $sessionCart = session()->get('cart', []);
+
         $validCart = [];
 
         foreach ($sessionCart as $cartKey => $item) {
@@ -79,79 +88,85 @@ class Checkout extends Component
 
             if ($product && ($product->status == 1 || $product->status == 3) && $product->quantity > 0) {
                 $validCart[$cartKey] = $item;
-                $validCart[$cartKey]['name']               = $product->name;
-                $validCart[$cartKey]['slug']               = $product->slug;
-                $validCart[$cartKey]['offer_price']        = $item['price'] ?? $product->offer_price; // variant price
-                $validCart[$cartKey]['price']              = $product->base_price;
-                $validCart[$cartKey]['image_url']          = $product->thumb_image;
+                $validCart[$cartKey]['name'] = $product->name;
+                $validCart[$cartKey]['slug'] = $product->slug;
+                $validCart[$cartKey]['offer_price'] = $product->offer_price;
+                $validCart[$cartKey]['price'] = $product->base_price;
+                $validCart[$cartKey]['image_url'] = $product->thumb_image;
                 $validCart[$cartKey]['available_quantity'] = $product->quantity;
-                $validCart[$cartKey]['discount_option']    = $product->discount_option;
-                $validCart[$cartKey]['quantity']           = $item['quantity'] ?? 1;
-                $validCart[$cartKey]['stock_ids']          = $item['stock_ids'] ?? []; // stock_ids array
+                $validCart[$cartKey]['discount_option'] = $product->discount_option;
+                $validCart[$cartKey]['quantity'] = $item['quantity'] ?? 1;
             }
         }
 
+        // Assign valid items to the cart
         $this->cart = $validCart;
 
-        // Direct checkout
+        // Check for direct checkout first
         $directCheckout = session()->get('direct_checkout');
 
+        // dd($directCheckout);
+
         if ($directCheckout && $directCheckout['is_direct_checkout']) {
+
             $product = Product::find($directCheckout['product_id']);
 
             if ($product && ($product->status == 1 || $product->status == 3) && $product->quantity > 0) {
 
+                // Create cart key with attributes
                 $cartKey = "{$product->id}";
                 foreach ($directCheckout['attributes'] as $key => $value) {
                     $cartKey .= "-{$key}:{$value}";
                 }
 
+                // Convert attributes to view-friendly format
                 $attributesInfo = [];
                 foreach ($directCheckout['attributes'] as $key => $value) {
                     $attributesInfo[] = [
-                        'name'  => ucfirst($key),
+                        'name' => ucfirst($key),
                         'value' => $value,
                     ];
                 }
 
+                // Final direct checkout cart override
                 $this->cart = [
                     $cartKey => [
-                        'product_id'         => $product->id,
-                        'quantity'           => $directCheckout['quantity'],
-                        'attributes'         => $directCheckout['attributes'],
-                        'attributes_info'    => $attributesInfo,
-                        'name'               => $product->name,
-                        'slug'               => $product->slug,
-                        'offer_price'        => $directCheckout['price'] ?? $product->offer_price, // variant price
-                        'price'              => $product->base_price,
-                        'image_url'          => $product->thumb_image,
+                        'product_id' => $product->id,
+                        'quantity' => $directCheckout['quantity'],
+                        'attributes' => $directCheckout['attributes'],
+                        'attributes_info' => $attributesInfo,
+                        'name' => $product->name,
+                        'slug' => $product->slug,
+                        'offer_price' => $product->offer_price,
+                        'price' => $product->base_price,
+                        'image_url' => $product->thumb_image,
                         'available_quantity' => $product->quantity,
-                        'discount_option'    => $product->discount_option,
-                        'stock_ids'          => $directCheckout['stock_ids'] ?? [], // stock_ids array
+                        'discount_option' => $product->discount_option,
+                        'stock_id'   => $directCheckout['stock_id'] ?? null,
                     ]
                 ];
 
                 return;
             }
         }
-    }
 
+    }
 
     public function applyCoupon()
     {
-        if( $this->couponCode == null ){
+        if ($this->couponCode == null) {
             $this->emit('error', 'please enter your coupon code.');
             return;
         }
 
         $coupon = Coupon::whereRaw('BINARY code = ?', [$this->couponCode])
-                ->where('status', 1)
-                ->whereDate('start_at', '<=', now())
-                ->where(function ($query) {
-                    $query->whereNull('expire_date')
-                        ->orWhereDate('expire_date', '>=', now());
-                })
-                ->first();
+            ->where('status', 1)
+            ->whereDate('start_at', '<=', now())
+            ->where(function ($query) {
+                $query->whereNull('expire_date')
+                    ->orWhereDate('expire_date', '>=', now());
+            })
+            ->first();
 
         if (!$coupon) {
             $this->emit('error', 'Invalid or expired coupon code!');
@@ -159,18 +174,17 @@ class Checkout extends Component
             return;
         }
 
-         $categoryIds = $coupon->categories()->pluck('categories.id')->toArray();
+        $categoryIds = $coupon->categories()->pluck('categories.id')->toArray();
 
         $eligibleTotal = 0;
-        $eligibleQty = 0;
         foreach ($this->cart as $item) {
-            $product = \App\Models\Product::find($item['product_id'] ?? explode('-', $item['id'])[0]);
-            if (!$product) continue;
+            $product = Product::find($item['product_id'] ?? explode('-', $item['id'])[0]);
+            if (!$product)
+                continue;
 
             // If coupon has categories, only count products inside them
             if (empty($categoryIds) || $product->category()->whereIn('categories.id', $categoryIds)->exists()) {
                 $eligibleTotal += ($product->offer_price ?? $product->base_price) * $item['quantity'];
-                $eligibleQty += $item['quantity'];
             }
         }
 
@@ -180,19 +194,7 @@ class Checkout extends Component
             return;
         }
 
-        if ($coupon->min_qty && $eligibleQty < $coupon->min_qty) {
-            $this->emit('error', 'You need to purchase at least ' . $coupon->min_qty . ' items to use this coupon.');
-            $this->couponCode = '';
-            return;
-        }
-
-        if ($coupon->max_qty && $eligibleQty > $coupon->max_qty) {
-            $this->emit('error', 'This coupon can only be applied to a maximum of ' . $coupon->max_qty . ' items.');
-            $this->couponCode = '';
-            return;
-        }
-
-        if( $coupon->min_purchase_amount && ($coupon->min_purchase_amount > $this->getTotalAmount() ) ){
+        if ($coupon->min_purchase_amount && ($coupon->min_purchase_amount > $this->getTotalAmount())) {
             $this->emit('error', 'You need to minimum purchase ' . $coupon->min_purchase_amount . 'tk for use this coupon');
             $this->couponCode = '';
             return;
@@ -233,46 +235,39 @@ class Checkout extends Component
         // $this->emit('info', 'Coupon removed.');
     }
 
-    public function updatedDistrictId($value)
-    {
-        $methods = ShippingMethod::where('status', 1)->where('base_id', $value)->first();
-
-        if ($methods) {
-
-            $this->selectedShippingMethodId = $methods->id;
-            $this->selectedShippingCharge = $methods->base_charge;
-            $this->shippingMethods = collect();
-        } else {
-            $this->loadShippingMethods();
-        }
-    }
-
-    public function loadShippingMethods()
-    {
-        $this->shippingMethods = ShippingMethod::where('status', 1)
-            ->where('base_id', null)
-            ->get();
-
-        if ($this->shippingMethods->count() === 1) {
-            $singleMethod = $this->shippingMethods->first();
-            $this->selectedShippingMethodId = $singleMethod->id;
-            $this->selectedShippingCharge = $singleMethod->provider_charge;
-        } elseif ($this->shippingMethods->count() > 1) {
+    public function updatedStateId($value){
+        if (empty($value)) {
+            $this->shippingMethods = [];
             $this->selectedShippingMethodId = null;
             $this->selectedShippingCharge = 0;
+            return;
+        }
+        
+        $state = State::find($value);
+
+        if (!$state) {
+            return;
+        }
+
+        $this->state_code = $state->code;
+        $this->city = $state->name;
+
+        $this->fetchShippingRates($state->code);
+    }
+
+    public function fetchShippingRates($code)
+    {
+        if (!$this->state_id) {
+            return;
         }
     }
 
-    public function updatedSelectedShippingMethodId()
+    public function updatedSelectedShippingMethodType($value)
     {
-        // Validate and fetch the charge securely
-        $shippingMethod = ShippingMethod::where('id', $this->selectedShippingMethodId)
-            ->first();
+        $method = collect($this->shippingMethods)->firstWhere('id', $value);
 
-        if ($shippingMethod) {
-            $this->selectedShippingCharge = $shippingMethod->provider_charge;
-        } else {
-            $this->selectedShippingCharge = 0;
+        if ($method) {
+            $this->selectedShippingCharge = (float) $method['rate'];
         }
     }
 
@@ -281,25 +276,27 @@ class Checkout extends Component
         'email' => 'required|email',
         'phone' => 'required|numeric',
         'shipping_address' => 'required',
-        'district_id' => 'required',
+        'city' => 'required',
+        'zip_code' => 'required',
+        'state_id' => 'required',
     ];
 
     protected $messages = [
-        'district_id.required' => 'Please select a city.',
+        'state_id.required' => 'Please select a state'
     ];
 
-    public function order(OrderService $orderService)
+    public function order(OrderService $orderService, StripeService $stripeService, Request $request)
     {
-        $this->validate();
+         $this->validate();
 
         try {
             if (empty($this->cart)) {
                 throw new \Exception('Your cart is empty');
             }
 
-            if (!$this->selectedShippingMethodId) {
-                throw new \Exception('Select a shipping method');
-            }
+            // if (!$this->selectedShippingMethodId) {
+            //     throw new \Exception('Select a shipping method');
+            // }
 
             if (!$this->payment_type) {
                 throw new \Exception('Select a payment method');
@@ -310,44 +307,49 @@ class Checkout extends Component
                 return redirect()->route('success.order', ['order_id' => $order->order_id])->with('success', 'Order placed successfully!');
             }
 
-            if ($this->payment_type === 'sslcommerz') {
+
+            if (!preg_match('/^\d{5}$/', $this->zip_code)) {
+                throw new \Exception('Please enter a valid 5-digit ZIP code');
+            }
+
+            if ($this->payment_type === 'stripe') {
                 $orderData = [
                     'cart' => $this->cart,
                     'form_data' => [
-                        'name'                      => $this->name,
-                        'email'                     => $this->email,
-                        'phone'                     => $this->phone,
-                        'shipping_address'          => $this->shipping_address,
-                        'zip_code'                  => $this->zip_code,
-                        'selectedShippingCharge'    => $this->selectedShippingCharge ?? 0,
-                        'selectedShippingMethodType'=> $this->selectedShippingMethodType ?? null,
-                        'note'                      => $this->note,
-                        'appliedCoupon'             => $this->appliedCoupon ?? [],
-                        'grandTotal'                => $this->grandTotal(),
-                        'subtotal'                  => $this->getTotalAmount(),
-                    ],
+                        'name' => $this->name,
+                        'email' => $this->email,
+                        'phone' => $this->phone,
+                        'shipping_address' => $this->shipping_address,
+                        'zip_code' => $this->zip_code,
+                        'city' => $this->city,
+                        'state_id' => $this->state_id,
+                        'state_code' => $this->state_code,
+                        // 'selectedShippingMethodId' => $this->selectedShippingMethodId ?? null,
+                        'selectedShippingCharge' => $this->selectedShippingCharge ?? 0,
+                        'selectedShippingMethodType' => $this->selectedShippingMethodType ?? null,
+                        'note' => $this->note,
+                        'appliedCoupon' => $this->appliedCoupon ?? [],
+                        'grandTotal' => $this->grandTotal(),
+                        'subtotal' => $this->getTotalAmount(),
+                    ]
                 ];
 
-                $sessionKey = 'ssl_order_' . time() . '_' . rand(1000, 9999);
-                session([$sessionKey => $orderData]);
+                $stripeSessionId = 'stripe_order_' . time() . '_' . rand(1000, 9999);
+                session([$stripeSessionId => $orderData]);
+                $userId = auth()->check() ? auth()->id() : null;
 
-                $sslService = app(\App\Services\SSLCommerzService::class);
-
-                $gatewayUrl = $sslService->createPayment(
+                $session = $stripeService->createCheckout(
                     $this->cart,
                     $this->grandTotal(),
-                    $sessionKey,
-                    $orderData['form_data']
+                    $userId,
+                    $stripeSessionId
                 );
 
-                return redirect()->away($gatewayUrl);
+                return redirect()->away($session->url);
             }
-            
-
         } catch(\Exception $e) {
             $this->emit('error', $e->getMessage());
         }
-
     }
 
 
@@ -368,7 +370,8 @@ class Checkout extends Component
     public function grandTotal()
     {
         $discount = $this->appliedCoupon ? ($this->appliedCoupon['discount'] ?? 0) : 0;
-        return $this->getTotalAmount() + $this->selectedShippingCharge - $discount;
+        $total = $this->getTotalAmount() + $this->selectedShippingCharge - $discount;
+        return number_format($total, 2);
     }
 
 
@@ -389,7 +392,8 @@ class Checkout extends Component
 
     public function render()
     {
-        $districts = District::orderBy('name', 'asc')->where('status',1)->get();
-        return view('livewire.frontend.order.checkout', compact('districts'));
+        //$districts = District::orderBy('name', 'asc')->where('status', 1)->get();
+        return view('livewire.frontend.order.checkout');
     }
+
 }

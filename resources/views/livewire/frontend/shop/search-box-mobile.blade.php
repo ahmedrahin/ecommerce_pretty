@@ -25,10 +25,10 @@
                                 <div class="product-info">
                                     {{ $product['name'] }}
                                     <span>
-                                        {{ $product['offer_price'] }}৳
+                                        ${{ $product['offer_price'] }}
                                         @if($product['discount_option'] != 1)
                                             <del class="text-danger opacity-80">
-                                                {{ $product['base_price'] }}৳
+                                                ${{ $product['base_price'] }}
                                             </del>
                                         @endif
                                     </span>

@@ -29,7 +29,7 @@
                     {{-- Subcategories --}}
                     @if($category->subcategories->isNotEmpty())
                     <ul class="subcategory-list" style="margin-left: 15px;">
-                        @foreach($category->subcategories->where('status',1) as $subcategory)
+                        @foreach($category->subcategories as $subcategory)
                             <li
                                 style="{{ $subcategory->subsubcategories->count() > 0 ? 'display: flex; flex-direction: column;' : '' }}">
                                 <div>
@@ -46,7 +46,7 @@
                                 {{-- Subsubcategories --}}
                                 @if($subcategory->subsubcategories->isNotEmpty())
                                 <ol class="subsubcategory-list" style="margin-left: 20px;">
-                                    @foreach($subcategory->subsubcategories->where('status',1) as $subsubcategory)
+                                    @foreach($subcategory->subsubcategories as $subsubcategory)
                                     <li>
                                         <div>
                                             <input type="checkbox" wire:model="selectedSubSubCategories"

@@ -13,9 +13,6 @@ class AddCart extends Component
     public $quantity = 1;
     public $selectedAttributes = [];
     public $attributeErrors = [];
-    public $selectedStockId = null;
-    public $selectedStockQty = 0;
-    public $selectedStockPrice = null;
 
     protected $listeners = ['updateQuantity', 'selectAttribute'];
 
@@ -33,152 +30,83 @@ class AddCart extends Component
     {
         $this->selectedAttributes[$attributeName] = $value;
         unset($this->attributeErrors[$attributeName]);
-        $this->resolveSelectedStock();
-    }
-
-    private function resolveSelectedStock()
-    {
-        $product = Product::with([
-            'productStock.attributeOptions.attribute',
-            'productStock.attributeOptions.attributeValue',
-        ])->find($this->productId);
-
-        if (!$product || $product->productStock->isEmpty()) {
-            $this->selectedStockId    = null;
-            $this->selectedStockQty   = $product->quantity ?? 0;
-            $this->selectedStockPrice = null;
-            return;
-        }
-
-        $matchedStocks = []; 
-
-        foreach ($this->selectedAttributes as $attrName => $attrValue) {
-            foreach ($product->productStock as $stock) {
-                if ($stock->is_disabled) {
-                    continue;
-                }
-                foreach ($stock->attributeOptions as $option) {
-                    $dbAttrName  = $option->attribute->attr_name ?? null;
-                    $dbAttrValue = $option->attributeValue->attr_value ?? null;
-
-                    if ($dbAttrName === $attrName && $dbAttrValue === $attrValue) {
-                        $matchedStocks[] = [
-                            'stock_id' => $stock->id,
-                            'quantity' => (int) $stock->quantity,
-                            'price'    => $stock->price,
-                        ];
-                        break 2;
-                    }
-                }
-            }
-        }
-
-        if (!empty($matchedStocks)) {
-            $minQty = min(array_column($matchedStocks, 'quantity'));
-
-            $this->selectedStockId    = collect($matchedStocks)->pluck('stock_id')->toArray(); 
-            $this->selectedStockQty   = $minQty;
-            $this->selectedStockPrice = $matchedStocks[0]['price'] ?? null;
-            return;
-        }
-
-        $this->selectedStockId    = null;
-        $this->selectedStockQty   = 0;
-        $this->selectedStockPrice = null;
     }
 
     public function addToCart()
     {
-        $product = Product::with([
-            'productStock.attributeOptions.attribute',
-            'productStock.attributeOptions.attributeValue',
-        ])->find($this->productId);
+        $product = Product::with('productStock.attributeOptions.attribute')->find($this->productId);
 
         if (!$product) {
             $this->emit('error', 'Product not found.');
             return;
         }
 
-        // Required attributes validate
-        $requiredAttributes = $this->getRequiredAttributes($product);
-
-        foreach (array_keys($requiredAttributes) as $attrName) {
-            if (empty($this->selectedAttributes[$attrName])) {
-                $this->attributeErrors[$attrName] = "Please select $attrName";
-            }
-        }
-
-        if (!empty($this->attributeErrors)) {
-            $this->emit('error', 'Please select all required options.');
-            return;
-        }
-
+        // QUANTITY VALIDATION
         if ($this->quantity <= 0 || !is_numeric($this->quantity)) {
             $this->emit('error', 'Invalid product quantity.');
             return;
         }
 
-        // ✅ Variant আছে কিনা check করে stock validate
-        $hasVariant = $product->productStock->count() > 0;
+        $requiredAttributes = [];
 
-        if ($hasVariant) {
-            // resolveSelectedStock আবার call করো — fresh data দিয়ে
-            $this->resolveSelectedStock();
-
-            if ($this->selectedStockQty <= 0) {
-                $this->emit('error', 'Selected variant is out of stock.');
-                return;
+        if ($product->productStock->count() > 0) {
+            foreach ($product->productStock as $stock) {
+                foreach ($stock->attributeOptions as $option) {
+                    $requiredAttributes[$option->attribute->attr_name] = true;
+                }
             }
 
-            if ($this->quantity > $this->selectedStockQty) {
-                $this->emit('error', "Only {$this->selectedStockQty} available for this variant.");
-                return;
+            foreach (array_keys($requiredAttributes) as $attrName) {
+                if (empty($this->selectedAttributes[$attrName])) {
+                    $this->attributeErrors[$attrName] = "Please select $attrName";
+                }
             }
-        } else {
-            if ($this->quantity > $product->quantity) {
-                $this->emit('error', "Only {$product->quantity} available.");
+
+            if (!empty($this->attributeErrors)) {
+                $this->emit('error', 'Please select all required options.');
                 return;
             }
         }
 
-        $cart    = session()->get('cart', []);
+        $selectedStock = null;
+
+        if ($product->productStock->count() > 0) {
+            $selectedStock = $this->resolveStock($product);
+
+            if (!$selectedStock) {
+                $this->emit('error', 'Invalid attribute combination.');
+                return;
+            }
+        }
+
+        $cart = session()->get('cart', []);
+
         $cartKey = "{$this->productId}";
         foreach ($this->selectedAttributes as $key => $value) {
             $cartKey .= "-{$key}:{$value}";
         }
 
-        $existingQty      = $cart[$cartKey]['quantity'] ?? 0;
-        $newTotalQuantity = $existingQty + $this->quantity;
-        $maxQty           = $hasVariant ? $this->selectedStockQty : $product->quantity;
+        $existingQuantity = $cart[$cartKey]['quantity'] ?? 0;
+        $newTotalQuantity = $existingQuantity + $this->quantity;
 
-        if ($newTotalQuantity > $maxQty) {
-            $this->emit('error', "Only {$maxQty} available.");
+        if ($newTotalQuantity > $product->quantity) {
+            $this->emit(
+                'error',
+                "You have exceeded available stock for {$product->name}. Only {$product->quantity} available."
+            );
             return;
         }
 
-        $price = $this->selectedStockPrice ?? $product->offer_price ?? $product->base_price;
-
         $cart[$cartKey] = [
             'product_id' => $this->productId,
-            'stock_ids'   => is_array($this->selectedStockId)  ? $this->selectedStockId : ($this->selectedStockId ? [$this->selectedStockId] : []),
             'quantity'   => $newTotalQuantity,
-            'price'      => $price,
+            'stock_id'   => $selectedStock?->id, 
             'attributes' => $this->selectedAttributes,
             'added_at'   => now(),
         ];
 
         session()->put('cart', $cart);
         session()->forget('applied_coupon');
-        session()->forget('direct_checkout');
-
-        $this->dispatchBrowserEvent('addToCartDataLayer', [
-            'item_id' => $product->id,
-            'item_name' => $product->name,
-            'price' => (float)$price,
-            'quantity' => (int)$this->quantity,
-            'category' => $product->category->name ?? '',
-            'variant' => implode(', ', $this->selectedAttributes)
-        ]);
 
         $this->emit('success', 'Product added to cart.');
         $this->emit('cartUpdated');
@@ -187,115 +115,128 @@ class AddCart extends Component
 
     public function directCheckout()
     {
-        $product = Product::with([
-            'productStock.attributeOptions.attribute',
-            'productStock.attributeOptions.attributeValue',
-        ])->find($this->productId);
+        $product = Product::with('productStock.attributeOptions.attribute')
+            ->find($this->productId);
 
         if (!$product) {
             $this->emit('error', 'Product not found.');
             return;
         }
 
+        // ================= QUANTITY =================
         if ($this->quantity <= 0 || !is_numeric($this->quantity)) {
             $this->emit('error', 'Invalid product quantity.');
             return;
         }
 
-        $requiredAttributes = $this->getRequiredAttributes($product);
+        // ================= ATTRIBUTE VALIDATION (ONLY IF VARIANT EXISTS) =================
+        $requiredAttributes = [];
 
-        foreach (array_keys($requiredAttributes) as $attrName) {
-            if (empty($this->selectedAttributes[$attrName])) {
-                $this->attributeErrors[$attrName] = "Please select $attrName";
+        if ($product->productStock->count() > 0) {
+            foreach ($product->productStock as $stock) {
+                foreach ($stock->attributeOptions as $option) {
+                    $requiredAttributes[$option->attribute->attr_name] = true;
+                }
+            }
+
+            foreach (array_keys($requiredAttributes) as $attrName) {
+                if (empty($this->selectedAttributes[$attrName])) {
+                    $this->attributeErrors[$attrName] = "Please select $attrName";
+                }
+            }
+
+            if (!empty($this->attributeErrors)) {
+                $this->emit('error', 'Please select all required options.');
+                return;
             }
         }
 
-        if (!empty($this->attributeErrors)) {
-            $this->emit('error', 'Please select all required options.');
+        // ================= STOCK MATCH (ONLY IF VARIANT EXISTS) =================
+        $selectedStock = null;
+
+        if ($product->productStock->count() > 0) {
+            $selectedStock = $this->resolveStock($product);
+
+            if (!$selectedStock) {
+                $this->emit('error', 'Invalid attribute combination.');
+                return;
+            }
+        }
+
+        // ================= PRODUCT STOCK ONLY =================
+        if ($this->quantity > $product->quantity) {
+            $this->emit(
+                'error',
+                "You have exceeded available stock for {$product->name}. Only {$product->quantity} available."
+            );
             return;
         }
 
-        $hasVariant = $product->productStock->count() > 0;
-
-        if ($hasVariant) {
-            $this->resolveSelectedStock();
-
-            if ($this->selectedStockQty <= 0) {
-                $this->emit('error', 'Selected variant is out of stock.');
-                return;
-            }
-
-            if ($this->quantity > $this->selectedStockQty) {
-                $this->emit('error', "Only {$this->selectedStockQty} available for this variant.");
-                return;
-            }
-        } else {
-            if ($this->quantity > $product->quantity) {
-                $this->emit('error', "Only {$product->quantity} available.");
-                return;
-            }
-        }
-
-        $price = $this->selectedStockPrice ?? $product->offer_price ?? $product->base_price;
-
+        // ================= SAVE DIRECT CHECKOUT =================
         session()->put('direct_checkout', [
-            'product_id'         => $this->productId,
-            'stock_ids'   => is_array($this->selectedStockId)  ? $this->selectedStockId : ($this->selectedStockId ? [$this->selectedStockId] : []),
-            'quantity'           => $this->quantity,
-            'price'              => $price,
-            'attributes'         => $this->selectedAttributes,
-            'product_details'    => [
+            'product_id' => $this->productId,
+            'stock_id'   => $selectedStock?->id,
+            'quantity'   => $this->quantity,
+            'attributes' => $this->selectedAttributes,
+            'product_details' => [
                 'name'        => $product->name,
                 'slug'        => $product->slug,
-                'offer_price' => $price,
+                'offer_price' => $product->offer_price,
                 'base_price'  => $product->base_price,
                 'image_url'   => $product->thumb_image,
             ],
             'is_direct_checkout' => true,
-            'added_at'           => now(),
+            'added_at' => now(),
         ]);
+
+        // dd('Direct checkout data:', session('direct_checkout'));
 
         session()->forget('applied_coupon');
-
-        session()->flash('dataLayer_add_to_cart', [
-            'value' => (float)($price * $this->quantity),
-            'item' => [
-                'item_id' => (string)$product->id,
-                'item_name' => $product->name,
-                'price' => (float)$price,
-                'quantity' => (int)$this->quantity,
-                'item_category' => $product->category->name ?? '',
-                'item_variant' => implode(', ', $this->selectedAttributes)
-            ]
-        ]);
 
         return redirect()->route('checkout');
     }
 
-    private function getRequiredAttributes(Product $product): array
+
+
+    private function resolveStock(Product $product)
     {
-        $required = [];
+        if ($product->productStock->isEmpty()) {
+            return null;
+        }
+
+        $allAttributeValues = AttributeValue::all()->keyBy('id');
+
         foreach ($product->productStock as $stock) {
-            if ($stock->is_disabled) {
-                continue;
-            }
+            $matches = true;
+
             foreach ($stock->attributeOptions as $option) {
-                $required[$option->attribute->attr_name] = true;
+                $attrName = $option->attribute->attr_name;
+
+                $dbValue = $allAttributeValues[$option->attribute_value_id]->attr_value ?? null;
+                $selectedValue = $this->selectedAttributes[$attrName] ?? null;
+
+                if ($dbValue !== $selectedValue) {
+                    $matches = false;
+                    break;
+                }
+            }
+
+            if ($matches) {
+                return $stock;
             }
         }
-        return $required;
+
+        return null;
     }
 
     public function render()
     {
         $product = Product::with([
-            'productStock.attributeOptions.attribute',
-            'productStock.attributeOptions.attributeValue',
+            'productStock.attributeOptions:id,product_stock_id,attribute_id,attribute_value_id'
         ])->find($this->productId);
 
-        $attributes       = Attribute::all();
+        $attributes = Attribute::all();
         $attributesValues = AttributeValue::all();
-
         return view('livewire.frontend.cart.add-cart', compact('product', 'attributes', 'attributesValues'));
     }
 }

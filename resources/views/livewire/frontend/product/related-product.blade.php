@@ -1,38 +1,27 @@
-<section class="related-product-list">
-    <h3>You Might Also Like</h3>
-
-    <div class="rp-slider-wrapper">
-        <button class="rp-arrow rp-arrow-left" onclick="document.getElementById('rp-grid-scroll').scrollBy({left: -240, behavior: 'smooth'})" aria-label="Previous">
-            <i class="bi bi-chevron-left"></i>
-        </button>
-        <div class="rp-grid" id="rp-grid-scroll">
-            @foreach ($products->take(10) as $product)
-                <div class="rp-card">
-                    <a href="{{ route('product-details', $product->slug) }}" class="rp-img-wrap">
-                        <img
-                            src="{{ asset($product->thumb_image) }}"
-                            alt="{{ $product->name }}"
-                            loading="lazy"
-                        >
+ <section class="related-product-list">
+    <h3>Related Product</h3>
+    @foreach ($products->take(10) as $product)
+        <div class="p-s-item">
+            <div class="image-holder">
+                <a href="{{ route('product-details',$product->slug) }}">
+                    <img src="{{ asset($product->thumb_image) }}"
+                        alt="{{ $product->name }}"
+                        width="80" height="80"></a>
+            </div>
+            <div class="caption">
+                <h4 class="product-name">
+                    <a
+                        href="{{ route('product-details',$product->slug) }}">Lenovo
+                        {{ $product->name }}
                     </a>
-
-                    <div class="rp-info">
-                        <a href="{{ route('product-details', $product->slug) }}">
-                            <p class="rp-name">{{ Str::limit($product->name, 30) }}</p>
-                        </a>
-
-                        <div class="rp-price">
-                            <span class="rp-price-new">TK{{ format_price($product->offer_price) }}</span>
-                            @if ($product->discount_option != 1)
-                                <span class="rp-price-old">TK{{ format_price($product->base_price) }}</span>
-                            @endif
-                        </div>
-                    </div>
+                </h4>
+                <div class="p-item-price price">
+                    <span class="price-new">{{ format_price($product->offer_price) }}৳</span>
+                    @if ($product->discount_option != 1)
+                        <span class="price-old">{{ format_price($product->base_price) }}৳</span>
+                    @endif
                 </div>
-            @endforeach
+            </div>
         </div>
-        <button class="rp-arrow rp-arrow-right" onclick="document.getElementById('rp-grid-scroll').scrollBy({left: 240, behavior: 'smooth'})" aria-label="Next">
-            <i class="bi bi-chevron-right"></i>
-        </button>
-    </div>
+    @endforeach
 </section>

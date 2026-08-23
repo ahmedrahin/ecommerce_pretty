@@ -1,2 +1,2 @@
 
-<span class="counter">{{ $cartCount }}</span>
+<span class="count">{{ $cartCount }}</span>
