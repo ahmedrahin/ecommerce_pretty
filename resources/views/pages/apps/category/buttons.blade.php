@@ -5,6 +5,12 @@
         <i class="ki-duotone ki-exit-down fs-2"><span class="path1"></span><span class="path2"></span></i>
         Export Report
     </button>
+    <!--begin::Sort categories-->
+    <button type="button" class="btn btn-light-info me-2" data-bs-toggle="modal" data-bs-target="#kt_modal_sort_categories">
+        <i class="ki-duotone ki-abstract-14 fs-2"><span class="path1"></span><span class="path2"></span></i>
+        Sort Categories
+    </button>
+    <!--end::Sort categories-->
     <!--begin::Add category-->
     <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#kt_modal_add_category">
         {!! getIcon('plus', 'fs-2', '', 'i') !!}

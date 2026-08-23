@@ -12,75 +12,7 @@
         {{ Breadcrumbs::render('stockin') }}
     @endsection
 
-
-    <div class="card">
-        <!--begin::Card header-->
-        <div class="card-header border-0 pt-6">
-            <!--begin::Card title-->
-            <div class="card-title">
-                <!--begin::Search-->
-                <div class="d-flex align-items-center position-relative my-1">
-                    {!! getIcon('magnifier', 'fs-3 position-absolute ms-5') !!}
-                    <input type="text" class="form-control form-control-solid w-250px ps-13"
-                        placeholder="Search product by name" id="mySearchInput" />
-                </div>
-                <!--end::Search-->
-            </div>
-
-            <div class="card-toolbar">
-                <div class="d-flex justify-content-end" data-kt-category-table-toolbar="base">
-
-                    <button type="button" class="btn btn-light-primary me-2" data-kt-menu-trigger="click"
-                        data-kt-menu-placement="bottom-end">
-                        <i class="ki-duotone ki-exit-down fs-2"><span class="path1"></span><span
-                                class="path2"></span></i>
-                        Export Report
-                    </button>
-
-                    <a type="button" class="btn btn-primary" href="{{ route('report.add.stock') }}">
-                        {!! getIcon('plus', 'fs-2', '', 'i') !!}
-                        Add New Stock
-                    </a>
-
-                    <div id="kt_datatable_example_export_menu"
-                        class="menu menu-sub menu-sub-dropdown menu-column menu-rounded menu-gray-600 menu-state-bg-light-primary fw-semibold fs-7 w-200px py-4"
-                        data-kt-menu="true">
-                        <!--begin::Menu item-->
-                        <div class="menu-item px-3">
-                            <a href="#" class="menu-link px-3" data-kt-export="copy">
-                                Copy to clipboard
-                            </a>
-                        </div>
-                        <div class="menu-item px-3">
-                            <a href="#" class="menu-link px-3" data-kt-export="excel">
-                                Export as Excel
-                            </a>
-                        </div>
-                        <div class="menu-item px-3">
-                            <a href="#" class="menu-link px-3" data-kt-export="csv">
-                                Export as CSV
-                            </a>
-                        </div>
-                        <div class="menu-item px-3">
-                            <a href="#" class="menu-link px-3" data-kt-export="pdf">
-                                Export as PDF
-                            </a>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <livewire:report.stock-in></livewire:report.stock-in>
-
-        <div class="card-body py-4">
-            <div class="table-responsive">
-                {{ $dataTable->table() }}
-            </div>
-        </div>
-    </div>
-
-     <div class="row" style="margin-top: 30px;">
+    <div class="row" style="margin-top: 30px;">
         <div class="col-md-3">
             <a href="#" class="card bg-body hoverable card-xl-stretch mb-xl-8">
                 <!--begin::Body-->
@@ -157,6 +89,75 @@
 
         </div>
     </div>
+
+    <div class="card">
+        <!--begin::Card header-->
+        <div class="card-header border-0 pt-6">
+            <!--begin::Card title-->
+            <div class="card-title">
+                <!--begin::Search-->
+                <div class="d-flex align-items-center position-relative my-1">
+                    {!! getIcon('magnifier', 'fs-3 position-absolute ms-5') !!}
+                    <input type="text" class="form-control form-control-solid w-250px ps-13"
+                        placeholder="Search product by name" id="mySearchInput" />
+                </div>
+                <!--end::Search-->
+            </div>
+
+            <div class="card-toolbar">
+                <div class="d-flex justify-content-end" data-kt-category-table-toolbar="base">
+
+                    <button type="button" class="btn btn-light-primary me-2" data-kt-menu-trigger="click"
+                        data-kt-menu-placement="bottom-end">
+                        <i class="ki-duotone ki-exit-down fs-2"><span class="path1"></span><span
+                                class="path2"></span></i>
+                        Export Report
+                    </button>
+
+                    <a type="button" class="btn btn-primary" href="{{ route('report.add.stock') }}">
+                        {!! getIcon('plus', 'fs-2', '', 'i') !!}
+                        Add New Stock
+                    </a>
+
+                    <div id="kt_datatable_example_export_menu"
+                        class="menu menu-sub menu-sub-dropdown menu-column menu-rounded menu-gray-600 menu-state-bg-light-primary fw-semibold fs-7 w-200px py-4"
+                        data-kt-menu="true">
+                        <!--begin::Menu item-->
+                        <div class="menu-item px-3">
+                            <a href="#" class="menu-link px-3" data-kt-export="copy">
+                                Copy to clipboard
+                            </a>
+                        </div>
+                        <div class="menu-item px-3">
+                            <a href="#" class="menu-link px-3" data-kt-export="excel">
+                                Export as Excel
+                            </a>
+                        </div>
+                        <div class="menu-item px-3">
+                            <a href="#" class="menu-link px-3" data-kt-export="csv">
+                                Export as CSV
+                            </a>
+                        </div>
+                        <div class="menu-item px-3">
+                            <a href="#" class="menu-link px-3" data-kt-export="pdf">
+                                Export as PDF
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <livewire:report.stock-in></livewire:report.stock-in>
+
+        <div class="card-body py-4">
+            <div class="table-responsive">
+                {{ $dataTable->table() }}
+            </div>
+        </div>
+    </div>
+
+    
 
     <!-- DataTables Buttons JS -->
     @push('scripts')

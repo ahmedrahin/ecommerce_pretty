@@ -20,10 +20,10 @@ return new class extends Migration
             $table->string('email')->nullable();
             $table->string('phone')->nullable();
             $table->string('shipping_address');
+            $table->string('address')->nullable();
             $table->string('city')->nullable();
+            $table->string('state')->nullable();
             $table->string('country')->nullable();
-            $table->integer('state_id')->nullable();
-            $table->string('state_code')->nullable();
             $table->string('zip_code')->nullable();
             $table->double('grand_total', 20, 2)->nullable();
             $table->double('subtotal', 20, 2)->nullable();
@@ -35,7 +35,7 @@ return new class extends Migration
             $table->text('cupon_code')->nullable();
             $table->double('coupon_discount', 20, 2)->nullable();
             $table->string('delivery_status', 20)->default('pending');
-            $table->string('payment_type')->nullable();
+            $table->string('payment_method')->nullable();
             $table->string('payment_from', 191)->nullable();
             $table->longText('note')->nullable();
             $table->string('order_source', 15)->nullable();

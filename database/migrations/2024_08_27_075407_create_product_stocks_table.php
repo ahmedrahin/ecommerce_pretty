@@ -18,6 +18,8 @@ return new class extends Migration
             $table->integer('price')->nullable();
             $table->integer('quantity')->nullable();
             $table->string('image')->nullable();
+            $table->tinyInteger('is_disabled')->default(0);
+            $table->softDeletes();
             $table->timestamps();
         });
     }

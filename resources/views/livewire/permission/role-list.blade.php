@@ -9,7 +9,7 @@
                 <!--begin::Card title-->
                 <div class="card-title">
                     <h2>{{ ucwords($role->name) }}</h2>
-                    @if( $role->name !== 'Super Admin' )
+                    @if( strtolower($role->name) !== 'super admin' && $role->id != 1 )
                         @can('delete role')
                             <button class="btn btn-icon btn-active-light-primary w-30px h-30px"  wire:click="confirmDelete('{{ $role->name }}')" style="margin-right: -25px;" >
                                 {!! getIcon('trash','fs-3') !!}
@@ -69,7 +69,7 @@
                             class="btn btn-light btn-active-primary my-1 me-2">View Role</a>
                     @endif
                     @can('update role')
-                        @if( $role->name !== 'Super Admin' )
+                        @if( strtolower($role->name) !== 'super admin' && $role->id != 1 )
                             <button type="button" class="btn btn-light btn-active-light-primary my-1"
                                 data-role-id="{{ $role->name }}" data-bs-toggle="modal" data-bs-target="#kt_modal_update_role" data-kt-action="update_row" data-role-name="{{ $role->name }}">Edit Role</button>
                         @endif    

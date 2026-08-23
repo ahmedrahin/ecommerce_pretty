@@ -14,9 +14,15 @@
                      placeholder="Product name" value="{{ $product->name }}" />
                     <span id="name" class="text-danger"></span>
                 </div>
-                
+                <div class="mb-0 fv-row">
+                    <label class="form-label">Model</label>
+                    <input type="text" name="model" 
+                    class="form-control mb-2"
+                     placeholder="Product model" value="{{ $product->model }}" />
+                    <span class="text-danger error-msg " id="model"></span>
+                </div>
                 <div class="mb-6">
-                    <label class="form-label">Short Description</label>
+                    <label class="form-label">Size Chart</label>
                     <div id="product_short_description" class="min-h-200px mb-2 ql-container ql-snow" style="width: 100%">
                         @php echo $product->short_description; @endphp
                     </div>
@@ -69,8 +75,9 @@
                 </div>
             </div>
         </div>
+
         {{-- gellary images --}}
-        <livewire:product.edit-gellary-images :product="$product->id" />
+        @include('pages.apps.product.edit.components.gallery-images-edit', ['product' => $product])
 
     </div>
 </div>

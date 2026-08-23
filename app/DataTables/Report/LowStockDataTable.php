@@ -27,7 +27,26 @@ class LowStockDataTable extends DataTable
         return (new EloquentDataTable($query))
             ->addIndexColumn()
             ->addColumn('product_name', function (Product $row) {
-                return '<a href="' . route('product-management.show', $row->id) . '" class="text-gray-800 text-hover-primary mb-1">' . Str::limit($row->name, 50) . '</a>';
+                $link = '<a href="' . route('product-management.show', $row->id) . '" class="text-gray-800 text-hover-primary mb-1">'
+                    . Str::limit($row->name, 50) . '</a>';
+
+                $lowStockVariants = $row->productStock->where('quantity', '>', 0)->where('quantity', '<=', 10);
+
+                if ($lowStockVariants->isNotEmpty()) {
+                    $labels = $lowStockVariants->map(function ($stock) {
+                        $label = $stock->attributeOptions->map(function ($opt) {
+                            return $opt->attribute->attr_name . ': ' . $opt->attributeValue->attr_value;
+                        })->implode(' / ');
+
+                        return '<div class="text-muted fs-9 fw-bold" style="padding-top: 2px;">'
+                            . ($label ?: 'Single Product')
+                            . '</div>';
+                    })->implode('');
+
+                    $link .= $labels;
+                }
+
+                return $link;
             })
             
             ->addColumn('created_at', function (Product $row) {
@@ -35,7 +54,18 @@ class LowStockDataTable extends DataTable
             })
 
             ->addColumn('quantity', function (Product $row) {
-                return '<span class="badge badge-light-warning fs-7 fw-bold">' . $row->quantity . '</span>';
+                $hasVariants = $row->productStock->isNotEmpty();
+
+                if ($hasVariants) {
+                    $lowStockVariants = $row->productStock->where('quantity', '>', 0)->where('quantity', '<=', 10);
+
+                    return $lowStockVariants->map(function ($stock) {
+                        return '<span class="badge badge-light-warning fs-7 fw-bold">'
+                            . $stock->quantity . ' pcs</span>';
+                    })->implode(' ');
+                }
+
+                return '<span class="badge badge-light-warning fs-7 fw-bold">' . $row->quantity . ' pcs</span>';
             })
 
             ->filterColumn('product_name', function ($query, $keyword) {
@@ -60,7 +90,20 @@ class LowStockDataTable extends DataTable
     public function query(Product $model): QueryBuilder
     {
         return $model->newQuery()
-            ->whereBetween('quantity', [1, 10])
+            ->with([
+                'productStock.attributeOptions.attribute',
+                'productStock.attributeOptions.attributeValue',
+            ])
+            ->where(function ($q) {
+                $q->where(function ($q2) {
+                    $q2->doesntHave('productStock')
+                        ->whereBetween('quantity', [1, 10]);
+                })
+  
+                ->orWhereHas('productStock', function ($q2) {
+                    $q2->whereBetween('quantity', [1, 10]);
+                });
+            })
             ->orderByDesc('created_at');
     }
 

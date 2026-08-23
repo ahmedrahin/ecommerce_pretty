@@ -16,24 +16,21 @@
         <div id="category_id" class="text-danger"></div>
         
 
-        <label class="form-label">Subcategory</label>
-        <select name="subcategory_id" id="subcategory_id_item" data-control="select2" class="form-select form-select-solid mb-3" data-placeholder="Select a subcategory" data-allow-clear="true">
+        <label class="form-label d-block">Subcategory</label>
+        <select name="subcategory_id[]" id="subcategory_id_item" data-control="select2" class="form-select form-select-solid mb-3" data-placeholder="Select subcategories" multiple="multiple">
             <option></option>
         </select>
         <span id="subcategory_id" class="text-danger"></span>
 
-        <label class="form-label">Subsubcategory</label>
-        <select name="subsubcategory_id" id="subsubcategory_id_item" data-control="select2" class="form-select form-select-solid mb-5" data-placeholder="Select a subsubcategory" data-allow-clear="true">
+        {{-- <label class="form-label">Subsubcategory (Multiple)</label>
+        <select name="subsubcategory_id[]" id="subsubcategory_id_item" data-control="select2" class="form-select form-select-solid mb-5" data-placeholder="Select subsubcategories" multiple="multiple">
             <option></option>
         </select>
-        <span id="subsubcategory_id" class="text-danger"></span>
+        <span id="subsubcategory_id" class="text-danger"></span> --}}
 
-        <label class="form-label">Brand</label>
+        <label class="form-label d-block">Brand</label>
         <select name="brand_id" data-control="select2" class="form-select form-select-solid mb-5" data-placeholder="Select a brand" data-allow-clear="true">
             <option></option>
-            @foreach ($brands as $brand)
-                <option value="{{ $brand->id }}">{{ $brand->name }}</option>
-            @endforeach
         </select>
         <span id="brand_id" class="text-danger"></span>
 
@@ -50,6 +47,14 @@
             <div class="form-check form-check-custom form-check-solid mb-2">
                 <input class="form-check-input" type="checkbox" id="is_featured" name="is_featured" value="1">
                 <label for="is_featured" class="form-check-label">set as featured product</label>
+            </div>
+             <div class="form-check form-check-custom form-check-solid mb-2">
+                <input class="form-check-input" type="checkbox" id="preorder" name="preorder" value="1">
+                <label for="preorder" class="form-check-label">set as up coming product</label>
+            </div>
+             <div class="form-check form-check-custom form-check-solid mb-2">
+                <input class="form-check-input" type="checkbox" id="stock_out" name="stock_out" value="1">
+                <label for="stock_out" class="form-check-label">set as stock out</label>
             </div>
         </div>
     </div>
@@ -85,95 +90,133 @@
     </div>
 </div>
 
-<div class="card card-flush py-4">
-    <!--begin::Card header-->
-    <div class="card-header">
-        <!--begin::Card title-->
-        <div class="card-title">
-            <h2>Badge</h2>
-        </div>
-    </div>
-    <div class="card-body pt-0 pb-7">
-        <select class="form-select mb-2" data-control="select2" data-hide-search="true" data-placeholder="Select an option" id="product_badge" name="badge">
-            <option value=""></option>
-            <option value="trending">Trending</option>
-            <option value="new">New Arrival</option>
-            <option value="flash">Flash Sale</option>
-            <option value="hot">Hot</option>
-        </select>
-
-        <div class="text-muted fs-7">Set the product badge.</div>
-    </div>
-</div>
-
 @push('scripts')
-<script>
-    $(document).ready(function() {
-        const selectElements = ['#product_status', '#discount_type'];
+    <script>
+        $(document).ready(function() {
+            const selectElements = ['#product_status', '#discount_type'];
 
-        selectElements.forEach(selector => {
-            $(selector).select2({
-                minimumResultsForSearch: Infinity
+            selectElements.forEach(selector => {
+                $(selector).select2({
+                    minimumResultsForSearch: Infinity
+                });
             });
-        });
 
-        // Event listener for when the category selection changes
-        $('#category_id_item').on('change', function() {
-            var categoryId = $(this).val();
-            updateSelectOptions(categoryId, '#subcategory_id_item', '/admin/get-subcategories/', function() {
-                $('#subcategory_id').trigger('change');
+            // Initialize multiple select2 for subcategory and subsubcategory
+            $('#subcategory_id_item').select2({
+                placeholder: "Select subcategories",
+                allowClear: true
             });
-        });
 
-        // Event listener for when the subcategory selection changes
-        $('#subcategory_id_item').on('change', function() {
-            var subcategoryId = $(this).val();
-            updateSelectOptions(subcategoryId, '#subsubcategory_id_item', '/admin/get-subsubcategories/');
-        });
+            $('#subsubcategory_id_item').select2({
+                placeholder: "Select subsubcategories",
+                allowClear: true
+            });
 
-         function updateSelectOptions(id, selectElementId, url, callback) {
-            if (id) {
+            // Event listener for when the category selection changes
+            $('#category_id_item').on('change', function() {
+                var categoryId = $(this).val();
+                updateSelectOptions(categoryId, '#subcategory_id_item', '/admin/get-subcategories/', true, function() {
+                    $('#subcategory_id_item').trigger('change');
+                });
+
+                // Update brands
+                updateSelectOptions(categoryId, 'select[name="brand_id"]', '/admin/get-brand/', false);
+            });
+
+            // Event listener for when the subcategory selection changes
+            $('#subcategory_id_item').on('change', function() {
+                var selectedSubcategories = $(this).val();
+                if (selectedSubcategories && selectedSubcategories.length > 0) {
+                    // Build query string for multiple IDs
+                    var queryString = selectedSubcategories.map(id => 'ids[]=' + id).join('&');
+                    loadMultipleSubsubcategories(queryString);
+                } else {
+                    $('#subsubcategory_id_item').empty().trigger('change');
+                    $('#subsubcategory_id_item').select2({
+                        placeholder: "Select subsubcategories",
+                        allowClear: true
+                    });
+                }
+            });
+
+            function loadMultipleSubsubcategories(queryString) {
                 $.ajax({
-                    url: url + id,
+                    url: "/admin/get-subsubcategories-for-multiple?" + queryString,
                     type: "GET",
                     dataType: "json",
                     success: function(data) {
-                        var $select = $(selectElementId);
-                        $select.empty().append('<option></option>');
+                        var $select = $('#subsubcategory_id_item');
+                        $select.empty();
 
                         $.each(data, function(key, value) {
                             $select.append('<option value="' + value.id + '">' + value.name + '</option>');
                         });
 
-                        // Re-init select2
                         $select.select2({
-                            placeholder: $select.data('placeholder'),
+                            placeholder: "Select subsubcategories",
                             allowClear: true
                         });
-
-                        if (callback) callback();
+                    },
+                    error: function(xhr, status, error) {
+                        console.error("Error loading subsubcategories:", error);
                     }
                 });
-            } else {
-                $(selectElementId).empty().trigger('change');
             }
-        }
 
+            function updateSelectOptions(id, selectElementId, url, isMultiple = false, callback) {
+                if (id) {
+                    $.ajax({
+                        url: url + id,
+                        type: "GET",
+                        dataType: "json",
+                        success: function(data) {
+                            var $select = $(selectElementId);
+                            $select.empty();
 
-        var input = document.querySelector("#kt_tagify_for_product");
+                            $.each(data, function(key, value) {
+                                $select.append('<option value="' + value.id + '">' + value.name + '</option>');
+                            });
 
-        // Initialize Tagify script on the above inputs
-        new Tagify(input, {
-            whitelist: @json($tags),
-            maxTags: 10,
-            dropdown: {
-                maxItems: 20,
-                classname: "tagify__inline__suggestions",
-                enabled: 0,
-                closeOnSelect: false
+                            // Initialize or re-init select2
+                            if (isMultiple) {
+                                $select.select2({
+                                    placeholder: $select.data('placeholder') || "Select options",
+                                    allowClear: true
+                                });
+                            } else {
+                                $select.select2({
+                                    placeholder: $select.data('placeholder'),
+                                    allowClear: true
+                                });
+                            }
+
+                            if (callback) callback();
+                        }
+                    });
+                } else {
+                    $(selectElementId).empty().trigger('change');
+                    if (isMultiple) {
+                        $(selectElementId).select2({
+                            placeholder: "Select options",
+                            allowClear: true
+                        });
+                    }
+                }
             }
+
+            var input = document.querySelector("#kt_tagify_for_product");
+
+            // Initialize Tagify script on the above inputs
+            new Tagify(input, {
+                whitelist: @json($tags),
+                maxTags: 10,
+                dropdown: {
+                    maxItems: 20,
+                    classname: "tagify__inline__suggestions",
+                    enabled: 0,
+                    closeOnSelect: false
+                }
+            });
         });
-    });
-
-</script>
+    </script>
 @endpush

@@ -138,7 +138,46 @@
                         <!--begin:::Tab content-->
                         <div class="tab-content" id="myTabContent">
                             <div class="tab-pane fade active show" id="kt_ecommerce_settings_home" role="tabpanel">
-                                
+                                <form id="homePageContent" enctype="multipart/form-data">
+                                    @csrf
+                                    <div class="mt-10">
+                                        <label
+                                            style="font-weight: 600;font-size: 16px;padding-bottom: 10px;display: block;">
+                                            Set New Arrival Image
+                                        </label>
+                                        <input type="file" class="form-control dropify" id="new_arrivale_image"
+                                            name="new_arrivale_image" accept="image/*"
+                                            @if ($setting->new_arrivale_image) data-default-file="{{ asset($setting->new_arrivale_image) }}" @endif>
+                                        <div class="text-danger mt-3" id="new_arrivale_image_error"></div>
+                                    </div>
+
+                                    <div class="mt-5">
+                                        <label
+                                            style="font-weight: 600;font-size: 16px;padding-bottom: 10px;display: block;">
+                                            Set Marquee Text
+                                        </label>
+                                        <input type="text" class="form-control" id="marquee_text" name="marquee_text"
+                                            value="{{ $setting->marquee_text }}">
+                                        <div class="text-danger mt-3" id="marquee_text_error"></div>
+                                    </div>
+
+                                    <div class="row py-5">
+                                        <div class="col-md-9 offset-md-3">
+                                            <div class="card-footer d-flex justify-content-end py-0"
+                                                style="border: none;">
+                                                <button type="submit" class="btn btn-primary"
+                                                    style="width: 200px !important;">
+                                                    <span class="indicator-label">Save Changes</span>
+                                                    <span class="indicator-progress">
+                                                        Please wait...
+                                                        <span
+                                                            class="spinner-border spinner-border-sm align-middle ms-2"></span>
+                                                    </span>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </form>
 
                             </div>
 
@@ -191,6 +230,7 @@
                                             </div>
                                             <input name="term_condition" hidden>
                                         </div>
+                                       
 
                                         <div class="row py-5">
                                             <div class="col-md-9 offset-md-3">
@@ -303,14 +343,12 @@
                 const privacyEditor = new Quill('#privacy_policy', quillOptions);
                 const refundEditor = new Quill('#refund_policy', quillOptions);
                 const termsEditor = new Quill('#term_condition', quillOptions);
-                
 
                 // Function to update hidden inputs
                 function updateHiddenInputs() {
                     $('input[name="privacy_policy"]').val(privacyEditor.root.innerHTML);
                     $('input[name="refund_policy"]').val(refundEditor.root.innerHTML);
                     $('input[name="term_condition"]').val(termsEditor.root.innerHTML);
-                   
                 }
 
                 // Function to send AJAX request

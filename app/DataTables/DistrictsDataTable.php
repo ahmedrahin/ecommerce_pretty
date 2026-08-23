@@ -3,7 +3,7 @@
 namespace App\DataTables;
 
 use Illuminate\Database\Eloquent\Builder as QueryBuilder;
-use App\Models\State;
+use App\Models\District;
 use Yajra\DataTables\EloquentDataTable;
 use Yajra\DataTables\Html\Builder as HtmlBuilder;
 use Yajra\DataTables\Html\Column;
@@ -22,29 +22,25 @@ class DistrictsDataTable extends DataTable
     {
         return (new EloquentDataTable($query))
             ->addIndexColumn()
-            ->editColumn('name', function (State $district) {
+            ->editColumn('name', function (District $district) {
                 return '<span class="text-gray-800 fs-5 fw-bold">' . $district->name . '</span>' ;
             })
-
-            ->editColumn('code', function (State $district) {
-                return '<span class="text-gray-800 fs-5 fw-bold">' . $district->code . '</span>' ;
-            })
             
-            ->addColumn('active', function (State $district) {
+            ->addColumn('active', function (District $district) {
                 return view('pages.apps.shipping.district.columns._active_status', compact('district'));
             })
-            ->addColumn('actions', function (State $district) {
+            ->addColumn('actions', function (District $district) {
                 return view('pages.apps.shipping.district.columns._actions', compact('district'));
             })
             ->orderColumn('id', 'id $1')
             ->setRowId('id')
-            ->rawColumns(['name', 'code', 'state_summrise', 'actions']);
+            ->rawColumns(['name', 'state_summrise', 'actions']);
     }
 
     /**
      * Get the query source of dataTable.
      */
-    public function query(State $model): QueryBuilder
+    public function query(District $model): QueryBuilder
     {
         $cacheKey = config('dbcachekey.shipping_district');
     
@@ -98,7 +94,6 @@ class DistrictsDataTable extends DataTable
         return [
             Column::computed('DT_RowIndex')->title('ID')->addClass('text-center')->orderable(false)->searchable(false),
             Column::make('name')->title('Name'),
-            Column::make('code')->title('Code'),
             Column::computed('active')
                 ->title('Active')
                 ->addClass('text-center text-nowrap no-export') 
@@ -117,6 +112,6 @@ class DistrictsDataTable extends DataTable
      */
     protected function filename(): string
     {
-        return 'States_' . date('YmdHis');
+        return 'Districs_' . date('YmdHis');
     }
 }

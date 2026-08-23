@@ -6,7 +6,7 @@
     {{ Breadcrumbs::render('shipping_method') }}
     @endsection
 
-    {{-- <div class="card mb-4">
+    <div class="card mb-4">
         <!--begin::Card header-->
             <div class="head-option">
                 <h2>Base Shipping Method</h2>
@@ -22,12 +22,12 @@
                 @livewire('shipping.method.list-shipping-method')
             </div>
         </div>
-    </div> --}}
+    </div>
 
     <div class="card mb-4 mt-10">
         <!--begin::Card header-->
             <div class="head-option">
-                <h2> Shipping Method</h2>
+                <h2>Regular Shipping Method</h2>
                 <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#kt_modal_regular_shipping">
                     <i class="ki-duotone ki-plus fs-2"></i>
                     Add New

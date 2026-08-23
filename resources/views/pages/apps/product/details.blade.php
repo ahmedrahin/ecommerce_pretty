@@ -118,10 +118,10 @@
                                 </div>
                                 <div class="product-price">
                                     <h4 class="mt-3">
-                                        ${{ $product->offer_price }}
+                                        {{ $product->offer_price }}৳
                                         @if ($product->discount_option == 2 || $product->discount_option == 3)
                                             <span class="text-danger" style="font-weight: 600;">
-                                                <del>${{ formatPrice($product->base_price) }}</del>
+                                                <del>{{ formatPrice($product->base_price) }}৳</del>
                                                 ({{ formatPrice($product->discount_percentage_or_flat_amount) }}{{ $product->discount_option == 2 ? '%' : '' }})
                                             </span>
                                         @endif
@@ -145,18 +145,35 @@
                                                 <dt class="col-sm-4">Category:</dt>
                                                 <dd class="col-sm-8">
                                                     @if ($product->category)
-                                                        {!! $product->category->name !!}
-                                                        @if ($product->subcategory)
-                                                            -> {!! $product->subcategory->name !!}
-                                                            @if ($product->subsubcategory)
-                                                                -> {!! $product->subsubcategory->name !!}
-                                                            @endif
+                                                        <div class="mb-2">
+                                                            <span class="badge bg-primary">{!! $product->category->name !!}</span>
+                                                        </div>
+                                                        
+                                                        @if($product->subcategories && $product->subcategories->count() > 0)
+                                                            <div class="mb-2">
+                                                                <span class="fw-bold">Subcategories:</span>
+                                                                <div class="mt-1">
+                                                                    @foreach($product->subcategories as $subcategory)
+                                                                        <span class="badge bg-info me-1">{!! $subcategory->name !!}</span>
+                                                                    @endforeach
+                                                                </div>
+                                                            </div>
+                                                        @endif
+                                                        
+                                                        @if($product->subsubcategories && $product->subsubcategories->count() > 0)
+                                                            <div>
+                                                                <span class="fw-bold">Subsubcategories:</span>
+                                                                <div class="mt-1">
+                                                                    @foreach($product->subsubcategories as $subsubcategory)
+                                                                        <span class="badge bg-secondary me-1">{!! $subsubcategory->name !!}</span>
+                                                                    @endforeach
+                                                                </div>
+                                                            </div>
                                                         @endif
                                                     @else
-                                                        <span class="no">Uncategorized</span>
+                                                        <span class="text-muted">Uncategorized</span>
                                                     @endif
                                                 </dd>
-
                                                 <dt class="col-sm-4">Brand:</dt>
                                                 <dd class="col-sm-8">{{ $product->brand->name ?? 'N/A' }}</dd>
 
@@ -236,52 +253,81 @@
                                     </div>
                                 </div>
 
-
                                 <div class="product-variant mb-8">
                                     @php
                                         $productStocks = $product->productStock ?? collect();
-                                        $attributesList = $attributes->keyBy('id');
-                                        $attributesValuesList = $attributesValues->keyBy('id');
-                                        $groupedAttributes = [];
                                     @endphp
 
                                     @if ($productStocks->isNotEmpty())
-                                        <h3>Product Variant</h3>
+                                        <h3 class="mb-4">Product Variants</h3>
 
-                                        <dl class="row align-items-center">
-                                            @foreach ($productStocks as $productStock)
-                                                @php
-                                                    $attributeOptions = $productStock->attributeOptions;
-                                                @endphp
-
-                                                @foreach ($attributeOptions as $attributeOption)
-                                                    @php
-                                                        $groupedAttributes[$attributeOption->attribute_id][] =
-                                                            $attributesValuesList[$attributeOption->attribute_value_id]
-                                                                ->attr_value ?? '';
-                                                    @endphp
-                                                @endforeach
-                                            @endforeach
-
-                                            @foreach ($groupedAttributes as $attribute_id => $attributeValues)
-                                                <dt class="col-sm-3">
-                                                    {{ $attributesList[$attribute_id]->attr_name ?? '' }}:
-                                                </dt>
-                                                <dd class="col-sm-9">
-                                                    @php
-                                                        $wrappedAttributeValues = array_map(function ($value) {
-                                                            return "<span>$value</span>";
-                                                        }, array_unique($attributeValues));
-                                                    @endphp
-                                                    {!! implode('', $wrappedAttributeValues) !!}
-                                                </dd>
-                                            @endforeach
-                                        </dl>
+                                        <div class="table-responsive">
+                                            <table class="table table-row-bordered table-row-gray-200 align-middle gs-0 gy-3">
+                                                <thead>
+                                                    <tr class="fw-bold text-gray-400 fs-7 text-uppercase">
+                                                        <th>Variation</th>
+                                                        <th class="text-center">Price</th>
+                                                        <th class="text-center">Stock</th>
+                                                        <th class="text-center">Status</th>
+                                                        <th class="text-center">Action</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    @foreach ($productStocks as $productStock)
+                                                        @php
+                                                            $label = $productStock->attributeOptions->map(function ($opt) {
+                                                                return $opt->attribute->attr_name . ': ' . $opt->attributeValue->attr_value;
+                                                            })->implode(' / ');
+                                                        @endphp
+                                                        <tr>
+                                                            <td>
+                                                                <span class="fw-bold text-gray-800">
+                                                                    {{ $label ?: 'Default' }}
+                                                                </span>
+                                                            </td>
+                                                            <td class="text-center">
+                                                                {{ format_price($productStock->price) }}৳
+                                                            </td>
+                                                            <td class="text-center">
+                                                                <span class="fw-bold {{ $productStock->quantity > 0 ? 'text-success' : 'text-danger' }}">
+                                                                    {{ $productStock->quantity }} Pcs
+                                                                </span>
+                                                            </td>
+                                                            <td class="text-center">
+                                                                @if ($productStock->quantity > 10)
+                                                                    <span class="badge badge-light-success">In Stock</span>
+                                                                @elseif ($productStock->quantity > 0)
+                                                                    <span class="badge badge-light-warning">Low Stock</span>
+                                                                @else
+                                                                    <span class="badge badge-light-danger">Out of Stock</span>
+                                                                @endif
+                                                            </td>
+                                                           <td class="text-center">
+                                                                <div class="form-check form-switch form-check-custom form-check-solid justify-content-center">
+                                                                    <input class="form-check-input toggle-variant-btn" type="checkbox"
+                                                                        data-id="{{ $productStock->id }}"
+                                                                        {{ $productStock->is_disabled ? '' : 'checked' }} />
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                    @endforeach
+                                                </tbody>
+                                                <tfoot>
+                                                    <tr class="fw-bold fs-6 border-top">
+                                                        <td colspan="2" class="text-end text-gray-600">Total Stock:</td>
+                                                        <td class="text-center text-dark">
+                                                            {{ $productStocks->sum('quantity') }} Pcs
+                                                        </td>
+                                                        <td></td>
+                                                    </tr>
+                                                </tfoot>
+                                            </table>
+                                        </div>
                                     @else
-                                        <span class="text-danger p-0" style="font-style: italic;font-weight: 600;">No
-                                            variant found in this product.</span>
+                                        <span class="text-danger" style="font-style:italic; font-weight:600;">
+                                            No variant found in this product.
+                                        </span>
                                     @endif
-
                                 </div>
 
                                 {{-- <div class="color-indigator-item bg-primary" style="background-color: #000 !important"></div>  --}}
@@ -332,13 +378,13 @@
                                 Order Analysis
                             </button>
                         </li>
-                        {{-- <li class="nav-item" role="presentation">
+                        <li class="nav-item" role="presentation">
                             <button class="nav-link" id="contact-tab" data-bs-toggle="tab" data-bs-target="#stock"
                                 type="button" role="tab" aria-controls="contact" aria-selected="true">
                                 <i class="bi bi-clipboard-data"></i>
                                 Stock History
                             </button>
-                        </li> --}}
+                        </li>
                         <li class="nav-item" role="presentation">
                             <button class="nav-link" id="home-tab" data-bs-toggle="tab"
                                 data-bs-target="#home" type="button" role="tab" aria-controls="home"
@@ -412,6 +458,44 @@
                     <i class="bi bi-arrow-left fs-2"></i>
                     All Product
                 </a>`)
+        </script>
+
+        {{-- Filter JS --}}
+        <script>
+            $('#variation_filter').on('change', function () {
+                const selected = $(this).val();
+
+                $('#stock_history_table tbody tr').each(function () {
+                    const rowVariation = $(this).data('variation');
+
+                    if (!selected) {
+                        $(this).show(); // সব দেখাও
+                    } else if (selected === 'single') {
+                        $(this).toggle(rowVariation === 'single');
+                    } else {
+                        $(this).toggle(rowVariation === selected);
+                    }
+                });
+            });
+
+            $(document).on('change', '.toggle-variant-btn', function () {
+                const checkbox = $(this);
+                const stockId  = checkbox.data('id');
+
+                $.ajax({
+                    url:  `/admin/product-stock/${stockId}/toggle`,
+                    type: 'POST',
+                    headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') },
+                    success: function (response) {
+                        const isDisabled = response.is_disabled;
+                        Swal.fire({ text: response.message, icon: 'success', timer: 1500, showConfirmButton: false });
+                    },
+                    error: function () {
+                        checkbox.prop('checked', !checkbox.prop('checked'));
+                        Swal.fire({ text: 'Something went wrong', icon: 'error', timer: 1500, showConfirmButton: false });
+                    }
+                });
+            });
         </script>
     @endpush
 </x-default-layout>

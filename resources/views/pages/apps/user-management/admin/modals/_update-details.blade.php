@@ -145,7 +145,7 @@
                                 <!--end::Input-->
                             </div>
                             
-                            {{-- <div class="d-flex flex-column mb-7 fv-row">
+                            <div class="d-flex flex-column mb-7 fv-row">
                                 <!--begin::Label-->
                                 <label class="fs-6 fw-semibold mb-2">District</label>
                                 <!--end::Label-->
@@ -159,7 +159,7 @@
                                 </select>
                                 <!--end::Input-->
                             </div>
-                             --}}
+                            
                             <div class="row g-9 mb-7">
                                 <!--begin::Col-->
                                 <div class="col-md-6 fv-row">

@@ -14,9 +14,15 @@
                      placeholder="Product name" value="" />
                     <span class="text-danger error-msg " id="name"></span>
                 </div>
-                
+                <div class="mb-0 fv-row">
+                    <label class="form-label">Model</label>
+                    <input type="text" name="model" 
+                    class="form-control mb-2"
+                     placeholder="Product model" value="" />
+                    <span class="text-danger error-msg " id="model"></span>
+                </div>
                 <div class="mb-6">
-                    <label class="form-label">Short Description</label>
+                    <label class="form-label">Size Chart</label>
                     <div id="product_short_description" class="min-h-200px mb-2 ql-container ql-snow" style="width: 100%"></div>
                     <input name="short_description" hidden>
                 </div>
@@ -63,16 +69,16 @@
                     <span id="discount_percentage_or_flat_amount" class="text-danger"></span>
                 </div>
 
-                {{-- <div class="fv-row">
-                    <label class="required form-label">Wholesale Price</label>
+                <div class="fv-row">
+                    <label class="form-label">Wholesale Price</label>
                     <input type="text" name="wholesale_price" class="form-control" placeholder="Product wholesale price" value="" />
                     <span class="text-danger error-msg" id="wholesale_price"></span>
-                </div> --}}
+                </div>
             </div>
         </div>
         
         {{-- gellary images --}}
-        <livewire:product.gellary-images/>
+        @include('pages.apps.product.components.gallery-images')
 
     </div>
 </div>

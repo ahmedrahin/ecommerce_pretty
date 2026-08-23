@@ -59,19 +59,22 @@
                     <li class="nav-item">
                         <a class="nav-link text-active-primary pb-4" data-bs-toggle="tab" href="#kt_ecommerce_add_product_advanced">Advanced</a>
                     </li>
-                    
+                     {{-- <li class="nav-item">
+                        <a class="nav-link text-active-primary pb-4" data-bs-toggle="tab"
+                            href="#specification">Specifications</a>
+                    </li>
                     <li class="nav-item">
                         <a class="nav-link text-active-primary pb-4" data-bs-toggle="tab"
                             href="#filter">Category Filter</a>
-                    </li>
+                    </li> --}}
                 </ul>
                 <div class="tab-content">
                     @include('pages.apps.product.edit.components.general-Information')
                     @include('pages.apps.product.edit.components.advanced-Information')
-                    @include('pages.apps.product.edit.components.filter')
+                    {{-- @include('pages.apps.product.edit.components.filter') --}}
                 </div>
                 <div class="d-flex justify-content-end">
-                    <button type="submit" id="add_product_submit" class="btn btn-primary mt-8" style="width: 200px;">
+                    <button type="submit" id="add_product_submit" class="btn btn-primary" style="width: 200px;">
                         <span class="indicator-label">Save Changes</span>
                         <span class="indicator-progress">Please wait...
                         <span class="spinner-border spinner-border-sm align-middle ms-2"></span></span>
@@ -118,6 +121,11 @@
                 // Create FormData with the updated input values
                 var formData = new FormData(this);
 
+                var galleryFiles = window.galleryFilesStore || [];
+                galleryFiles.forEach(function (file) {
+                    formData.append('gallery_image[]', file);
+                });
+
                 $.ajax({
                     url: '{{ route("product-management.update", $product->id) }}',
                     type: 'POST',
@@ -135,7 +143,8 @@
                         $('#add_product_submit .indicator-progress').hide();
                         $('#add_product_submit .indicator-label').show();
                         var productId = response.product;
-                        Livewire.emit('save', productId);
+                        
+                         window.resetGalleryImages();
 
                         // Redirect or perform other actions upon success
                         toastr.success('Product updated successfully')

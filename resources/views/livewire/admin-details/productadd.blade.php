@@ -36,11 +36,11 @@
 
                                 <td class="text-center">
                                     @if ($product->discount_option == 1)
-                                        ${{ $product->base_price }}
+                                        {{ $product->base_price }}৳
                                     @else
-                                        ${{ $product->offer_price }}
+                                        {{ $product->offer_price }}৳
                                         <br>
-                                        <del style="color: #f1416cad">${{ $product->base_price }}</del>
+                                        <del style="color: #f1416cad">{{ $product->base_price }}৳</del>
                                     @endif
                                 </td>
 

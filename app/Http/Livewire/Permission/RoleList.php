@@ -48,11 +48,15 @@ class RoleList extends Component
     
 
     public function delete($role_name = ''){
-        if(!empty($role_name) && $role_name !== 'Super Admin'){
+        if(!empty($role_name)){
             $role = Role::where('name', $role_name)->first();
-            $role->delete();
-            $this->emit('info', 'The role is deleted');
-            $this->updateRoleList();
+            if ($role && strtolower($role->name) !== 'super admin' && $role->id != 1) {
+                $role->delete();
+                $this->emit('info', 'The role is deleted');
+                $this->updateRoleList();
+            } else {
+                $this->emit('warning', 'You cannot delete super admin.');
+            }
         }else{
             $this->emit('warning', 'You cannot delete super admin.');
         }

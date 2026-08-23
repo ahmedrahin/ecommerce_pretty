@@ -45,9 +45,6 @@ class ReviewDataTable extends DataTable
             })
             ->editColumn('comment', fn($data) => "<span style='font-size: 11px !important; display: block; overflow: hidden;'>"
                 . $data->comment . "</span>")
-            ->addColumn('featured', function (Review $data) {
-                return view('pages.apps.review.columns.featured', compact('data'));
-            })    
             ->addColumn('actions', fn($data) => view('pages.apps.review.columns._actions', compact('data')))
             ->filterColumn('product_name', function ($query, $keyword) {
                 $query->whereHas('product', function ($q) use ($keyword) {
@@ -58,7 +55,7 @@ class ReviewDataTable extends DataTable
                 $query->where('rating', (int) $keyword);
             })
 
-            ->rawColumns(['product_name', 'name', 'rating', 'comment', 'featured'])
+            ->rawColumns(['product_name', 'name', 'rating', 'comment'])
             ->setRowId('id');
     }
 
@@ -99,7 +96,6 @@ class ReviewDataTable extends DataTable
             Column::make('email')->title('Email')->addClass('text-center'),
             Column::make('rating')->title('Rating')->addClass('text-center'),
             Column::make('comment')->title('Comment')->addClass('coment'),
-            Column::make('featured')->title('Featured')->addClass('text-center')->orderable(false),
             Column::computed('actions')
                 ->title('Actions')
                 ->addClass('text-end text-nowrap no-export')

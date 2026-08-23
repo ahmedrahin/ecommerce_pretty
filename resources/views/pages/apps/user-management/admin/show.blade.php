@@ -37,10 +37,10 @@
                         href="#kt_user_view_overview_security">Security</a>
                 </li>
                 
-                {{-- <li class="nav-item">
+                <li class="nav-item">
                     <a class="nav-link text-active-primary pb-4" data-bs-toggle="tab"
                         href="#add_order">Added Order</a>
-                </li> --}}
+                </li>
 
                 <li class="nav-item">
                     <a class="nav-link text-active-primary pb-4" data-bs-toggle="tab"

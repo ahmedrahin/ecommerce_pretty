@@ -61,14 +61,16 @@ class CategoriesDataTable extends DataTable
         $categories = Cache::rememberForever($cacheKey, function () use ($model) {
             return $model->newQuery()
                 ->with('subcategories.subsubcategories')
-                ->orderByDesc('id') // Correct descending order
+                ->orderBy('sort_order', 'asc')
+                ->orderByDesc('id')
                 ->get();
         });
 
         // Return the query builder with the correct order
         return $model->newQuery()
             ->whereIn('id', $categories->pluck('id'))
-            ->orderByDesc('id'); // Ensure ordering here as well
+            ->orderBy('sort_order', 'asc')
+            ->orderByDesc('id');
     }
 
     
@@ -104,12 +106,11 @@ class CategoriesDataTable extends DataTable
             ])
             ->addTableClass('table align-middle table-row-dashed fs-6 gy-5 dataTable no-footer text-gray-600 fw-semibold')
             ->setTableHeadClass('text-start text-muted fw-bold fs-7 text-uppercase gs-0')
-            ->orderBy(1, 'desc')
+            ->orderBy(0, 'asc')
             ->parameters([
                 'colReorder' => true,
                 'drawCallback' => "function() {" . file_get_contents(resource_path('views/pages/apps/category/columns/_draw-scripts.js')) . "}",
             ]);
-           // ->drawCallback("function() {" . file_get_contents(resource_path('views/pages/apps/category/columns/_draw-scripts.js')) . "}");
     }
 
     /**

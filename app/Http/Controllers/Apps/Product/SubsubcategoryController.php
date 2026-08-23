@@ -22,4 +22,24 @@ class SubsubcategoryController extends Controller
         $subsubcategories = Subsubcategory::where('subcategory_id', $subcategory_id)->get();
         return response()->json($subsubcategories);
     }
+
+   public function getSubsubcategoriesForMultiple(Request $request)
+    {
+        $subcategoryIds = $request->query('ids');
+        
+        if (empty($subcategoryIds)) {
+            return response()->json([]);
+        }
+        
+        if (!is_array($subcategoryIds)) {
+            $subcategoryIds = [$subcategoryIds];
+        }
+        
+        $subsubcategories = Subsubcategory::whereIn('subcategory_id', $subcategoryIds)
+            ->distinct()
+            ->get();
+        
+        return response()->json($subsubcategories);
+    }
+
 }

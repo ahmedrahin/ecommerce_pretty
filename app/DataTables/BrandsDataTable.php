@@ -117,7 +117,7 @@ class BrandsDataTable extends DataTable
             Column::computed('DT_RowIndex')->title('Sl.')->addClass('text-center')->orderable(false)->searchable(false),
             Column::make('image')->title('Image')->orderable(false)->searchable(false),
             Column::make('name')->title('Name'),
-            // Column::computed('category_id')->title('Category')->addClass('text-center'),
+            Column::computed('category_id')->title('Category')->addClass('text-center'),
             Column::computed('product_summaries')->title('Product_summaries')->addClass('text-center'),
             Column::computed('active')
                 ->title('Status')

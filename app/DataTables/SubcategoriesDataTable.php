@@ -29,7 +29,7 @@ class SubcategoriesDataTable extends DataTable
                 return '<span class="badge badge-light-primary">' . $subcategory->category->name ?? '' . '</span>';
             })
             ->editColumn('product_summaries', function (Subcategory $subcategory) {
-                $productCount = $subcategory->product->count(); 
+                $productCount = $subcategory->products->count(); 
                 if ($productCount == 0) {
                     $count = '<span class="badge badge-light-danger">0</span>';
                 } elseif ($productCount > 0 && $productCount <= 5) {

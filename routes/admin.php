@@ -28,6 +28,8 @@ use App\Http\Controllers\Apps\Order\OrderController;
 use App\Http\Controllers\Apps\Settings\SettingController;
 use App\Http\Controllers\Apps\User\AdminManagementController;
 use App\Http\Controllers\Apps\Order\CouponController;
+use App\Http\Controllers\Apps\Order\WarrantyController;
+use App\Http\Controllers\Apps\Order\ServiceController;
 use App\Http\Controllers\Apps\Marketing\ReviewController;
 use App\Http\Controllers\Apps\Marketing\SliderController;
 use App\Http\Controllers\Apps\User\ContactMessageController;
@@ -72,6 +74,7 @@ Route::middleware(['isAdmin'])->group(function () {
     Route::prefix('product-catalogue')->name('product-catalogue.')->group(function () {
         Route::get('brand', [BrandController::class, 'index'])->name('brand.index');
         Route::get('category', [CategoryController::class, 'index'])->name('category.index');
+        Route::post('category/update-sort-order', [CategoryController::class, 'updateSortOrder'])->name('category.update-sort-order');
         Route::get('subcategory', [SubcategoryController::class, 'index'])->name('subcategory.index');
         Route::get('subsubcategory', [SubsubcategoryController::class, 'index'])->name('subsubcategory.index');
         Route::get('/product-filter', [FilterOptionController::class, 'index'])->name('product.filter');
@@ -83,19 +86,22 @@ Route::middleware(['isAdmin'])->group(function () {
     Route::name('product-management.')->group(function () {
         Route::controller(ProductController::class)->group(function () {
             // Apply middleware for permissions
-            Route::get('/all-product', 'index')->name('index');
+            Route::get('/all-product', 'index')->name('index')->middleware('can:all product');
             Route::get('/create-product', 'create')->name('create');
             Route::post('/store-product', 'store')->name('store');
-            Route::get('/product-edit/{id}', [ProductEditController::class, 'edit'])->name('edit');
-            Route::post('/product-update/{id}', [ProductEditController::class, 'update'])->name('update');
-            Route::get('/product-details/{id}', 'show')->name('show');
+            Route::get('/product-edit/{id}', [ProductEditController::class, 'edit'])->name('edit')->middleware('can:update product');
+            Route::post('/product-update/{id}', [ProductEditController::class, 'update'])->name('update')->middleware('can:update product');
+            Route::post('/update-product-order', 'updateOrder')->name('update-order')->middleware('can:update product');
+            Route::get('/product-details/{id}', 'show')->name('show')->middleware('can:all product');
 
             // API for categories (without middleware, as they might be public)
             Route::get('/get-brand/{category_id}', [BrandController::class, 'getBrand']);
             Route::get('/get-subcategories/{category_id}', [SubcategoryController::class, 'getSubcategories']);
             Route::get('/get-subsubcategories/{subcategory_id}', [SubsubcategoryController::class, 'getSubsubcategories']);
+            Route::get('/get-subsubcategories-for-multiple', [SubsubcategoryController::class, 'getSubsubcategoriesForMultiple']);
 
             // API for product variations
+            Route::get('/products/{product}/variants', [VariantController::class, 'productVariants']);
             Route::get('/get-attribute-value/{attribute_id}', [VariantController::class, 'getAttributeValue']);
             Route::get('/full-compare-product', 'fullCompare')->name('full.compare');
         });
@@ -105,6 +111,7 @@ Route::middleware(['isAdmin'])->group(function () {
     Route::name('product-variant.')->group(function(){
         Route::controller(VariantController::class)->group(function () {
             Route::get('/product-variant', 'index')->name('index');
+            Route::post('product-stock/{stock}/toggle', 'toggleVariant')->name('stock.toggle');
         });
     });
 
@@ -112,7 +119,7 @@ Route::middleware(['isAdmin'])->group(function () {
     // shipping management
     Route::name('shipping.')->group(function(){
         Route::controller(ShippingController::class)->group(function () {
-            Route::get('/shipping-state', 'state')->name('state');
+            Route::get('/shipping-district', 'district')->name('district');
             Route::get('/shipping-method', 'shipping_method')->name('shipping_method');
         });
     });
@@ -127,6 +134,17 @@ Route::middleware(['isAdmin'])->group(function () {
     });
 
 
+    Route::resource('warranty', WarrantyController::class);
+    Route::get('/warranty/{year?}/{month?}', [WarrantyController::class, 'index'])->name('warranty.index');
+    Route::post('/warranty/update/{id}', [WarrantyController::class, 'update'])->name('warranty.update');
+    Route::get('all-warranty', [WarrantyController::class, 'all'])->name('all.warranty');
+
+    Route::resource('service', ServiceController::class);
+    Route::get('/service/{year?}/{month?}', [ServiceController::class, 'index'])->name('service.index');
+    Route::post('/service/update/{id}', [ServiceController::class, 'update'])->name('service.update');
+    Route::get('all-servicing', [ServiceController::class, 'all'])->name('all.service');
+
+
     // coupon
     Route::name('coupon.')->group(function(){
         Route::get('coupon', [CouponController::class, 'index'])->name('index');
@@ -135,6 +153,9 @@ Route::middleware(['isAdmin'])->group(function () {
     // review
     Route::name('review.')->group(function(){
         Route::get('product-reviews', [ReviewController::class, 'index'])->name('index');
+        Route::get('image-reviews', [ReviewController::class, 'imageReview'])->name('image');
+        Route::post('add-image-reviews', [ReviewController::class, 'imageReviewadd'])->name('addimage');
+        Route::delete('delete-image-reviews/{id}', [ReviewController::class, 'deleteReview'])->name('deleteimage');
     });
 
     // contact message
@@ -169,7 +190,6 @@ Route::middleware(['isAdmin'])->group(function () {
 
      // home slider
     Route::resource('slider', SliderController::class);
-    Route::get('slider-content', [SliderController::class, 'sliderContent'])->name('slider.content');
 
     // offers
     Route::resource('offer', OfferController::class);
@@ -183,7 +203,7 @@ Route::middleware(['isAdmin'])->group(function () {
             Route::get('/low-stock', 'lowStock')->name('lowstock');
             Route::get('/stock-in/{year?}/{month?}', 'stockIn')->name('stockin');
             Route::get('/add-new-stock', 'addStock')->name('add.stock');
-            Route::post('/add-new-stock', 'storeStock')->name('store.stock');
+            Route::post('/stock-in-store', 'storeStock')->name('store.stock');
         });
     });
 

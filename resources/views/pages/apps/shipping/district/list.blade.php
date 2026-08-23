@@ -3,7 +3,7 @@
         <link rel="stylesheet" href="{{asset('assets/plugins/custom/datatables/datatables.bundle.css')}}">
     @endsection
 
-    @section('title') State List @endsection
+    @section('title') District List @endsection
 
     @section('breadcrumbs')
     {{ Breadcrumbs::render('shipping') }}

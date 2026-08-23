@@ -270,6 +270,59 @@
                             console.error('Unknown export type:', exportType);
                     }
                 }
+
+                // Drag & Drop sorting
+                function initSortable() {
+                    if (typeof $.fn.sortable === 'undefined') {
+                        $.getScript('https://code.jquery.com/ui/1.13.2/jquery-ui.min.js', function() {
+                            bindSortable();
+                        });
+                    } else {
+                        bindSortable();
+                    }
+                }
+
+                function bindSortable() {
+                    $("#product-table tbody").sortable({
+                        handle: '.drag-handle',
+                        axis: 'y',
+                        update: function(event, ui) {
+                            var order = [];
+                            $('#product-table tbody tr').each(function(index, element) {
+                                var id = $(element).attr('id');
+                                if (id) {
+                                    order.push(id);
+                                }
+                            });
+
+                            $.ajax({
+                                url: "{{ route('product-management.update-order') }}",
+                                type: 'POST',
+                                headers: {
+                                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                                },
+                                data: {
+                                    order: order
+                                },
+                                success: function(response) {
+                                    if (response.status === 'success') {
+                                        toastr.success(response.message);
+                                    } else {
+                                        toastr.error(response.message);
+                                    }
+                                },
+                                error: function(xhr) {
+                                    toastr.error('Failed to save order.');
+                                }
+                            });
+                        }
+                    });
+                }
+
+                initSortable();
+                $('#product-table').on('draw.dt', function() {
+                    initSortable();
+                });
         
             });
         </script> 
