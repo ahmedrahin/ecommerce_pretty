@@ -118,7 +118,7 @@ class ProductReview extends Component
         // Use paginate instead of get()
         $reviews = Review::where('product_id', $this->productId)
             ->latest()
-            ->paginate(1);
+            ->paginate(5);
 
         $userReview = Auth::check()
             ? Review::where('product_id', $this->productId)

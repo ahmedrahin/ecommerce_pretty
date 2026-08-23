@@ -20,6 +20,7 @@ class ShopProduct extends Component
     ];
 
 
+
     public function mount($productId)
     {
         $this->productId = $productId;
@@ -96,6 +97,8 @@ class ShopProduct extends Component
             return;
         }
 
+        $price = $product->offer_price ?? $product->base_price;
+
         // Store in cart
         $cart[$cartKey] = [
             'product_id' => $this->productId,
@@ -106,6 +109,16 @@ class ShopProduct extends Component
 
         session()->put('cart', $cart);
         session()->forget('applied_coupon');
+
+        $this->dispatchBrowserEvent('addToCartDataLayer', [
+            'item_id' => $product->id,
+            'item_name' => $product->name,
+            'price' => (float)$price,
+            'quantity' => (int)$this->quantity,
+            'category' => $product->category->name ?? '',
+            'variant' => implode(', ', $this->selectedAttributes)
+        ]);
+
         $this->emit('success', 'Product added to cart.');
         $this->emit('cartUpdated');
         $this->emit('cartAdded');

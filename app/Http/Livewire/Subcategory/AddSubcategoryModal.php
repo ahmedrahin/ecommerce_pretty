@@ -213,10 +213,10 @@ class AddSubcategoryModal extends Component
         $subcategory = Subcategory::find($id);
 
         // Delete the category image if it exists
-        if ($subcategory && $subcategory->image) {
-            Storage::disk('real_public')->delete($subcategory->image);
-            $subcategory->update(['image' => null]);
-        }
+        // if ($subcategory && $subcategory->image) {
+        //     Storage::disk('real_public')->delete($subcategory->image);
+        //     $subcategory->update(['image' => null]);
+        // }
 
         Subcategory::destroy($id);
 

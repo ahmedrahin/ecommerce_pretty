@@ -149,7 +149,7 @@ class CartList extends Component
     {
         $this->loadCart();
         if (empty($this->cart)) {
-            return redirect()->route('shop');
+            return redirect()->route('homepage');
         }
     }
 

@@ -57,6 +57,15 @@
                                     @enderror
                                 </div>
 
+                                <div class="fv-row mb-7">
+                                    <label class="fw-semibold fs-6 mb-2">Min Quantity</label>
+                                    <input type="number" wire:model.defer="min_qty" name="min_qty"
+                                        class="form-control form-control-solid mb-3 mb-lg-0 @error('min_qty') error-border @enderror" placeholder="Enter min qty" min="1" />
+                                    @error('min_qty')
+                                        <span class="text-danger">{{ $message }}</span>
+                                    @enderror
+                                </div>
+
                             </div>
 
                             <div class="col-md-6 col-lg-6">
@@ -96,6 +105,15 @@
                                     <label class="fw-semibold fs-6 mb-2">Expire Date</label>
                                     <input id="coupon_expire_at" name="expire_date" placeholder="Select a date" class="form-control form-control-solid mb-0 @error('expire_date') error-border @enderror" wire:model="expire_date" />
                                     @error('expire_date')
+                                        <span class="text-danger">{{ $message }}</span>
+                                    @enderror
+                                </div>
+
+                                <div class="fv-row mb-7">
+                                    <label class="fw-semibold fs-6 mb-2">Max Quantity</label>
+                                    <input type="number" wire:model.defer="max_qty" name="max_qty"
+                                        class="form-control form-control-solid mb-3 mb-lg-0 @error('max_qty') error-border @enderror" placeholder="Enter max qty" min="1" />
+                                    @error('max_qty')
                                         <span class="text-danger">{{ $message }}</span>
                                     @enderror
                                 </div>

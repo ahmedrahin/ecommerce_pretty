@@ -15,6 +15,7 @@ class CategoryMenuMobile extends Component
                     ->where('status', 1)
                     ->withCount('products');
             }, 'product'])
+            ->orderBy('sort_order', 'asc')
             ->orderBy('id', 'asc')
             ->get();
             

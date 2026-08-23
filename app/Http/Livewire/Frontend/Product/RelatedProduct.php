@@ -68,6 +68,8 @@ class RelatedProduct extends Component
             return;
         }
 
+        $price = $product->offer_price ?? $product->base_price;
+
         if (!isset($cart[$cartKey])) {
             $cart[$cartKey] = [
                 'product_id' => $productId,
@@ -81,6 +83,16 @@ class RelatedProduct extends Component
         }
 
         session()->put('cart', $cart);
+
+        $this->dispatchBrowserEvent('addToCartDataLayer', [
+            'item_id' => $product->id,
+            'item_name' => $product->name,
+            'price' => (float)$price,
+            'quantity' => (int)$this->quantity,
+            'category' => $product->category->name ?? '',
+            'variant' => ''
+        ]);
+
         $this->emit('cartUpdated');
         $this->emit('cartAdded');
     }
@@ -99,6 +111,7 @@ class RelatedProduct extends Component
                 $query->whereNull('expire_date')
                     ->orWhere('expire_date', '>', Carbon::now());
             })
+            ->take(10)
             ->get();
 
         return view('livewire.frontend.product.related-product', compact('products'));

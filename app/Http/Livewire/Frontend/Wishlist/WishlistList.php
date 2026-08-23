@@ -87,6 +87,8 @@ class WishlistList extends Component
         return;
     }
 
+    $price = $product->offer_price ?? $product->base_price;
+
     // Save/Update cart item
     $cart[$cartKey] = [
         'product_id' => $productId,
@@ -95,6 +97,15 @@ class WishlistList extends Component
     ];
 
     session()->put('cart', $cart);
+
+    $this->dispatchBrowserEvent('addToCartDataLayer', [
+        'item_id' => $product->id,
+        'item_name' => $product->name,
+        'price' => (float)$price,
+        'quantity' => (int)$quantity,
+        'category' => $product->category->name ?? '',
+        'variant' => ''
+    ]);
 
     $this->emit('success', 'Product added to cart.');
     $this->emit('cartUpdated');

@@ -26,24 +26,13 @@
                         <!--begin::Scroll-->
                         <div class="d-flex flex-column scroll-y px-5 px-lg-10" id="kt_modal_add_district_scroll" data-kt-scroll="true" data-kt-scroll-activate="true" data-kt-scroll-max-height="auto" data-kt-scroll-dependencies="#kt_modal_add_district_header" data-kt-scroll-wrappers="#kt_modal_add_district_scroll" data-kt-scroll-offset="300px">
                             <div class="fv-row mb-7">
-                                <label class="fw-semibold fs-6 mb-2">State Name</label>
-                                <input type="text" wire:model.defer="name" name="name" class="form-control form-control-solid mb-3 mb-lg-0 @error('name') is_valid @enderror" placeholder="State name" />
+                                <label class="fw-semibold fs-6 mb-2">District Name</label>
+                                <input type="text" wire:model.defer="name" name="name" class="form-control form-control-solid mb-3 mb-lg-0 @error('name') is_valid @enderror" placeholder="District name" />
                                 @error('name') <span class="text-danger">{{ $message }}</span> @enderror
                             </div>
 
                             @if($edit_mode)
-                                <input type="hidden" wire:model.defer="state_id" name="state_id" />
-                            @endif
-                        </div>
-                        <div class="d-flex flex-column scroll-y px-5 px-lg-10" id="kt_modal_add_district_scroll" data-kt-scroll="true" data-kt-scroll-activate="true" data-kt-scroll-max-height="auto" data-kt-scroll-dependencies="#kt_modal_add_district_header" data-kt-scroll-wrappers="#kt_modal_add_district_scroll" data-kt-scroll-offset="300px">
-                            <div class="fv-row mb-7">
-                                <label class="fw-semibold fs-6 mb-2">State Code</label>
-                                <input type="text" wire:model.defer="code" name="code" class="form-control form-control-solid mb-3 mb-lg-0 @error('code') is_valid @enderror" placeholder="State code" />
-                                @error('code') <span class="text-danger">{{ $message }}</span> @enderror
-                            </div>
-
-                            @if($edit_mode)
-                                <input type="hidden" wire:model.defer="state_id" name="state_id" />
+                                <input type="hidden" wire:model.defer="district_id" name="district_id" />
                             @endif
                         </div>
                         <div class="text-center pt-3">

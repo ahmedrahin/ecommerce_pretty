@@ -66,6 +66,8 @@ class ProductCollections extends Component
             return;
         }
 
+        $price = $product->offer_price ?? $product->base_price;
+
         if (!isset($cart[$cartKey])) {
             $cart[$cartKey] = [
                 'product_id' => $productId,
@@ -79,6 +81,16 @@ class ProductCollections extends Component
         }
 
         session()->put('cart', $cart);
+
+        $this->dispatchBrowserEvent('addToCartDataLayer', [
+            'item_id' => $product->id,
+            'item_name' => $product->name,
+            'price' => (float)$price,
+            'quantity' => (int)$this->quantity,
+            'category' => $product->category->name ?? '',
+            'variant' => ''
+        ]);
+
         $this->emit('cartUpdated');
         $this->emit('cartAdded');
     }
