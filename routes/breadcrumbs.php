@@ -40,7 +40,7 @@ Breadcrumbs::for('message-details', function (BreadcrumbTrail $trail) {
 
 Breadcrumbs::for('compare', function (BreadcrumbTrail $trail) {
     $trail->parent('dashboard');
-    $trail->push('Product Compare', );
+    $trail->push('Home & Away Selection', );
 });
 
 Breadcrumbs::for('question', function (BreadcrumbTrail $trail) {
@@ -55,10 +55,6 @@ Breadcrumbs::for('question-details', function (BreadcrumbTrail $trail) {
 Breadcrumbs::for('subscription', function (BreadcrumbTrail $trail) {
     $trail->parent('dashboard');
     $trail->push('Subscription Email', );
-});
-Breadcrumbs::for('banner_content', function (BreadcrumbTrail $trail) {
-    $trail->parent('dashboard');
-    $trail->push('Banner Content', );
 });
 
 // Home > Dashboard > User Management
@@ -107,6 +103,11 @@ Breadcrumbs::for('admin-management.permissions.index', function (BreadcrumbTrail
 Breadcrumbs::for('slider', function (BreadcrumbTrail $trail) {
     $trail->parent('dashboard');
     $trail->push('Banner Images', route('slider.index'));
+});
+
+Breadcrumbs::for('review_img', function (BreadcrumbTrail $trail) {
+    $trail->parent('dashboard');
+    $trail->push('Review Images', route('review.image'));
 });
 
 Breadcrumbs::for('warranty', function (BreadcrumbTrail $trail) {
@@ -185,7 +186,7 @@ Breadcrumbs::for('review', function (BreadcrumbTrail $trail) {
 // Home > Dashboarad > shipping
 Breadcrumbs::for('shipping', function (BreadcrumbTrail $trail) {
     $trail->parent('dashboard');
-    $trail->push('State List', route('shipping.state'));
+    $trail->push('District List', route('shipping.district'));
 });
 // Home > Dashboarad > order
 Breadcrumbs::for('orderlist', function (BreadcrumbTrail $trail) {
