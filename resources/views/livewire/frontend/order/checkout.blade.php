@@ -73,13 +73,18 @@
                                     </fieldset> --}}
 
                                     <fieldset>
-                                        <select wire:model="state_id" class="@error('state_id') error_border @enderror">
-                                            <option value="">Select State</option>
-                                            @foreach($states as $state)
-                                                <option value="{{ $state->id }}">{{ $state->name }}</option>
-                                            @endforeach
-                                        </select>
-                                        @error('state_id') <div class="text-danger small">{{ $message }}</div> @enderror
+                                        <div class="tf-select">
+                                            <select wire:model="district_id"
+                                                    class="@error('district_id') error_border @enderror">
+                                                <option value="">Select City / District</option>
+                                                @foreach ($districts as $district)
+                                                    <option value="{{ $district->id }}">
+                                                        {{ $district->name }} - {{ $district->bn_name }}
+                                                    </option>
+                                                @endforeach
+                                            </select>
+                                            @error('district_id') <div class="text-danger small">{{ $message }}</div> @enderror
+                                        </div>
                                     </fieldset>
 
                                     <fieldset>
@@ -95,21 +100,12 @@
                         <!-- Payment Method -->
                         <div class="box-ip-payment">
                             <h2 class="title type-semibold">Choose Payment Option</h2>
-                            {{-- <div class="payment-method-box" id="payment-method-box">
+                            <div class="payment-method-box" id="payment-method-box">
                                 <div class="payment_accordion">
                                     <label for="cash-on" class="payment_check checkbox-wrap">
                                         <input type="radio" name="payment-method" class="tf-check-rounded style-2"
-                                               id="cash-on" wire:model="payment_type" value="cod">
+                                               id="cash-on" wire:model="payment_type" value="cod" checked>
                                         <span class="pay-title">Cash On Delivery</span>
-                                    </label>
-                                </div>
-                            </div> --}}
-                            <div class="payment-method-box" id="payment-method-box">
-                                <div class="payment_accordion">
-                                    <label for="stripe" class="payment_check checkbox-wrap">
-                                        <input type="radio" name="payment-method" class="tf-check-rounded style-2"
-                                               id="stripe" wire:model="payment_type" value="stripe">
-                                        <span class="pay-title">Pay with Stripe</span>
                                     </label>
                                 </div>
                             </div>
@@ -187,21 +183,31 @@
                                 </li>
                             @endif
 
+                            <li class="total-item h6">
+                                <span class="fw-bold text-black">Shipping Charge</span>
+                                <span>
+                                    @if ($selectedShippingCharge)
+                                        ${{ format_price($selectedShippingCharge) }}
+                                    @else
+                                        <span class="text-muted fs-7">Select district</span>
+                                    @endif
+                                </span>
+                            </li>
+
                             <!-- Shipping Method -->
-                            @if(!empty($shippingMethods))
+                            @if(!empty($shippingMethods) && count($shippingMethods) > 0)
                                 <div class="box-ip-shipping pb-2" style="margin-bottom: 25px;border-bottom:1px solid var(--line);">
                                     <span class="fw-bold text-black mb-14 d-block mt-3">Shipping Method</span>
                                     @foreach($shippingMethods as $method)
-                                        <label class="check-ship mb-12">
-                                            <input type="radio"
-                                                class="tf-check-rounded style-2 line-black"
-                                                wire:model="selectedShippingMethodType"
-                                                value="{{ $method['id'] }}">
-
-                                            <span class="text h6">
-                                                <span>{{ $method['name'] }}</span>
-                                                <span class="price">${{ $method['rate'] }}</span>
-                                            </span>
+                                        <label class="check-ship mb-12 d-flex justify-content-between align-items-center cursor-pointer">
+                                            <div class="d-flex align-items-center gap-2">
+                                                <input type="radio"
+                                                    class="tf-check-rounded style-2 line-black"
+                                                    wire:model="selectedShippingMethodId"
+                                                    value="{{ $method->id }}">
+                                                <span class="text h6 mb-0">{{ $method->provider_name }}</span>
+                                            </div>
+                                            <span class="price h6 mb-0">${{ format_price($method->provider_charge) }}</span>
                                         </label>
                                     @endforeach
                                 </div>
@@ -218,7 +224,7 @@
         </div>
     </div>
 
-    <div id="ajax-loader" wire:loading wire:target="state_id">
+    <div id="ajax-loader" wire:loading wire:target="district_id">
         <div style="width: 100%;height:100%;display:flex;align-items:center;justify-content:center;">
             <div class="spinner"></div>
         </div>

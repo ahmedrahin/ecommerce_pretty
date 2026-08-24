@@ -1,19 +1,17 @@
 <div>
     @php
-        $productStocks = $product->productStock ?? collect();
+        $productStocks = ($product->productStock ?? collect())->reject(function ($ps) {
+            return !empty($ps->is_disabled);
+        });
         $attributesList = $attributes->keyBy('id');
         $attributesValuesList = $attributesValues->keyBy('id');
         $groupedAttributes = [];
 
-        // group only single-attribute stocks (like before)
-        $singleVariationStocks = $productStocks->filter(function ($productStock) {
-            return $productStock->attributeOptions->count() === 1;
-        });
-
-        foreach ($singleVariationStocks as $stock) {
+        foreach ($productStocks as $stock) {
             foreach ($stock->attributeOptions as $opt) {
-                // group by attribute_id -> option_id => valueModel
-                $groupedAttributes[$opt->attribute_id][$opt->id] = $attributesValuesList[$opt->attribute_value_id] ?? null;
+                if (isset($attributesValuesList[$opt->attribute_value_id])) {
+                    $groupedAttributes[$opt->attribute_id][$opt->attribute_value_id] = $attributesValuesList[$opt->attribute_value_id];
+                }
             }
         }
 
@@ -278,6 +276,24 @@
                         // Initial button state
                         updateButtonStates();
                         updateQuantityDisplay();
+                    }
+                });
+
+                // Variant button image click handler for slider
+                $(document).on('click', '.color-btn, .size-btn', function() {
+                    const imageUrl = $(this).data('image');
+                    if (imageUrl) {
+                        const swiperMain = document.querySelector('.tf-product-media-main')?.swiper;
+                        if (swiperMain) {
+                            const slides = swiperMain.slides;
+                            for (let i = 0; i < slides.length; i++) {
+                                const img = slides[i].querySelector('img');
+                                if (img && (img.src === imageUrl || img.getAttribute('data-src') === imageUrl)) {
+                                    swiperMain.slideTo(i);
+                                    break;
+                                }
+                            }
+                        }
                     }
                 });
             });

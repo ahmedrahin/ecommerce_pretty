@@ -11,9 +11,8 @@ use Illuminate\Support\Facades\DB;
 
 class OrderService
 {
-    public function __construct() {}
 
-    public function placeOrder($context, array $cart, string $paymentType = 'stripe', $paidAmount = null)
+    public function placeOrder($context, array $cart, string $paymentType = 'cod', $paidAmount = null)
     {
         return DB::transaction(function () use ($context, $cart, $paymentType, $paidAmount) {
 
@@ -28,7 +27,7 @@ class OrderService
         });
     }
 
-    private function prepareOrderData($c, string $paymentType = 'stripe', $paidAmount): array
+    private function prepareOrderData($c, string $paymentType = 'cod', $paidAmount): array
     {
         return [
             'order_id' => Str::upper(Str::random(4)) . rand(1000, 9999),
@@ -39,15 +38,13 @@ class OrderService
             'email' => $c->email,
             'phone' => $c->phone,
 
+            'district_id' => $c->district_id,
             'shipping_address' => $c->shipping_address,
             'zip_code' => $c->zip_code,
-            'city' => $c->city,
-            'state_id' => $c->state_id,
-            'state_code' => $c->state_code,
+            // 'city' => $c->city,
 
             'payment_type' => $paymentType,
             'shipping_method' => $c->selectedShippingMethodId,
-            'shipping_type' => $c->selectedShippingMethodType,
             'shipping_cost' => $c->selectedShippingCharge,
 
             'order_date' => now(),
@@ -66,35 +63,78 @@ class OrderService
     private function saveOrderItems(Order $order, array $cart)
     {
         foreach ($cart as $item) {
-
             $product = Product::find($item['product_id']);
 
-            $stock   = isset($item['stock_id']) ? ProductStock::find($item['stock_id']) : null;
-            if (!$product || $product->quantity < $item['quantity']) {
+            if (!$product) {
                 continue;
             }
 
-            $product->decrement('quantity', $item['quantity']);
+            $stockIds = $item['stock_ids'] ?? ($item['stock_id'] ? [$item['stock_id']] : []);
+            $stocks   = !empty($stockIds)
+                ? ProductStock::with('attributeOptions.attribute', 'attributeOptions.attributeValue')
+                    ->whereIn('id', $stockIds)
+                    ->get()
+                : collect();
 
+            if ($stocks->isNotEmpty()) {
+                foreach ($stocks as $stock) {
+                    if ($stock->quantity < $item['quantity']) {
+                        continue 2;
+                    }
+
+                    $stock->decrement('quantity', $item['quantity']);
+
+                    if ($stock->fresh()->quantity === 0) {
+                        $label = $stock->attributeOptions->map(function ($opt) {
+                            return $opt->attribute->attr_name . ': ' . $opt->attributeValue->attr_value;
+                        })->implode(' / ');
+
+                        ProductStockManage::create([
+                            'product_id'       => $product->id,
+                            'product_stock_id' => $stock->id,
+                            'variation_label'  => $label,
+                            'stock'            => 'out_of_stock',
+                            'quantity'         => 0,
+                            'stocked_at'       => now(),
+                        ]);
+                    }
+                }
+
+                $product->update([
+                    'quantity' => ProductStock::where('product_id', $product->id)->sum('quantity')
+                ]);
+
+            } else {
+                if ($product->quantity < $item['quantity']) {
+                    continue;
+                }
+
+                $product->decrement('quantity', $item['quantity']);
+
+                if ($product->fresh()->quantity === 0) {
+                    ProductStockManage::create([
+                        'product_id'       => $product->id,
+                        'product_stock_id' => null,
+                        'variation_label'  => null,
+                        'stock'            => 'out_of_stock',
+                        'quantity'         => 0,
+                        'stocked_at'       => now(),
+                    ]);
+                }
+            }
+
+            // Order item create
             $orderItem = $order->orderItems()->create([
-                'product_id' => $product->id,
-                'quantity' => $item['quantity'],
-                'price' => $item['offer_price'],
-                'product_stock_id' => $stock->id ?? null,
+                'product_id'       => $product->id,
+                'quantity'         => $item['quantity'],
+                'price'            => $item['offer_price'] ?? $item['price'] ?? 0,
+                'product_stock_id' => $stocks->first()->id ?? null,
             ]);
 
             foreach ($item['attributes'] ?? [] as $name => $value) {
                 $orderItem->orderItemVariations()->create([
-                    'attribute_name' => $name,
+                    'attribute_name'  => $name,
                     'attribute_value' => $value,
-                ]);
-            }
-
-            if ($product->fresh()->quantity === 0) {
-                ProductStockManage::create([
-                    'product_id' => $product->id,
-                    'stock' => 'out_of_stock',
-                    'quantity' => 0,
                 ]);
             }
         }
@@ -115,7 +155,7 @@ class OrderService
 
         if ($this->mailIsConfigured()) {
             if(config('app.email')){
-                OrderSent::dispatch($order);
+                // OrderSent::dispatch($order);
             }
         }
 

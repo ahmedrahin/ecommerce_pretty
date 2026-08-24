@@ -56,6 +56,7 @@ class RolesPermissionsSeeder extends Seeder
             'update admin',
             'delete admin',
             'view admin',
+            'details admin',
             'add role',
             'update role',
             'delete role',
@@ -63,6 +64,7 @@ class RolesPermissionsSeeder extends Seeder
             'all product',
             'update product',
             'delete product',
+            'all order',
             'update order',
             'delete order',
         ];
@@ -89,6 +91,7 @@ class RolesPermissionsSeeder extends Seeder
             'update admin' => 'admin-catalouge',
             'delete admin' => 'admin-catalouge',
             'view admin' => 'admin-catalouge',
+            'details admin' => 'admin-catalouge',
             'add role' => 'admin-catalouge',
             'update role' => 'admin-catalouge',
             'delete role' => 'admin-catalouge',
@@ -96,6 +99,7 @@ class RolesPermissionsSeeder extends Seeder
             'all product' => 'product-catalouge',
             'update product' => 'product-catalouge',
             'delete product' => 'product-catalouge',
+            'all order' => 'order-catalouge',
             'update order' => 'order-catalouge',
             'delete order' => 'order-catalouge',
         ];

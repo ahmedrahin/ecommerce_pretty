@@ -16,7 +16,7 @@ class ProductDetailsService
             'brand:id,name',
             'galleryImages:id,product_id,image',
             'tags:id,product_id,name',
-            'productStock:id,product_id',
+            'productStock:id,product_id,price,quantity,is_disabled',
             'productStock.attributeOptions:id,product_stock_id,attribute_id,attribute_value_id',
             'reviews:id,product_id,rating',
             'orderItemsWithOrder.order:id,delivery_status',
