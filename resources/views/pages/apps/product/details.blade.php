@@ -276,8 +276,10 @@
                                                     @foreach ($productStocks as $productStock)
                                                         @php
                                                             $label = $productStock->attributeOptions->map(function ($opt) {
-                                                                return $opt->attribute->attr_name . ': ' . $opt->attributeValue->attr_value;
-                                                            })->implode(' / ');
+                                                                $attr = $opt->attribute->attr_name ?? '';
+                                                                $val = $opt->attributeValue->attr_value ?? '';
+                                                                return $attr && $val ? $attr . ': ' . $val : ($val ?: $attr);
+                                                            })->filter()->implode(' / ');
                                                         @endphp
                                                         <tr>
                                                             <td>
