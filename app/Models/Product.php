@@ -84,6 +84,11 @@ class Product extends Model
         return $this->hasMany(Wishlist::class);
     }
 
+    public function wishlists()
+    {
+        return $this->hasMany(Wishlist::class);
+    }
+
     public function QuesionAnswer()
     {
         return $this->hasMany(Question::class, 'product_id')->whereNotNull('answer');
