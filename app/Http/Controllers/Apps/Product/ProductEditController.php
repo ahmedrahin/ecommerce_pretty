@@ -147,7 +147,7 @@ class ProductEditController extends Controller
 
         try {
             // ── Product core data ──────────────────────────────────────────────────
-            $data      = $this->prepareProductData($validated, $request);
+            $data      = $this->prepareProductData($validated, $request, $product);
             $imageData = $this->handleFileUploads($request, $product);
 
             // many-to-many fields products table এ নেই — remove
@@ -226,7 +226,7 @@ class ProductEditController extends Controller
             $product->filterValues()->sync($syncData);
 
             // ── Variations ─────────────────────────────────────────────────────────
-            if ($request->has('variations')) {
+            if ($request->has('variations') && !empty($request->input('variations'))) {
                 $this->updateProductVariations($request, $product, $oldBasePrice, $oldOfferPrice);
             }
 
@@ -464,10 +464,13 @@ class ProductEditController extends Controller
             }
         }
 
-        //product quantity recalculate (soft deleted)
-        $product->update([
-            'quantity' => ProductStock::where('product_id', $product->id)->sum('quantity')
-        ]);
+        //product quantity recalculate only if product has stock variations
+        $totalStock = ProductStock::where('product_id', $product->id)->sum('quantity');
+        if ($totalStock > 0 || ProductStock::where('product_id', $product->id)->exists()) {
+            $product->update([
+                'quantity' => $totalStock
+            ]);
+        }
     }
 
     private function uploadVariationImage($imageFile)
@@ -535,10 +538,10 @@ class ProductEditController extends Controller
     }
 
 
-    private function prepareProductData(array $validated, Request $request): array
+    private function prepareProductData(array $validated, Request $request, Product $product = null): array
     {
         $discountDetails = $this->calculateDiscount($request, $validated['base_price']);
-        return [
+        $productData = [
             'name' => $validated['name'],
             // 'brand_id' => $validated['brand_id'] ?? '',
             'category_id' => $validated['category_id'],
@@ -548,7 +551,6 @@ class ProductEditController extends Controller
             'long_description' => $request->long_description,
             'key_features' => $request->key_features,
             'base_price' => $validated['base_price'],
-            'quantity' => $validated['quantity'],
             'sku_code' => $request->sku_code,
             'video_link' => $request->video_link,
             'free_shipping' => $request->free_shipping ?? 'no',
@@ -562,6 +564,14 @@ class ProductEditController extends Controller
 
             ...$discountDetails,
         ];
+
+        if ($product) {
+            $productData['quantity'] = $product->quantity;
+        } else {
+            $productData['quantity'] = $validated['quantity'] ?? 0;
+        }
+
+        return $productData;
     }
 
     private function calculateDiscount(Request $request, float $basePrice): array

@@ -42,9 +42,10 @@ class PagesController extends Controller
             ->get();
 
         $newArrivales = Product::activeProducts()
-            ->orderBy('is_new', 'desc')
+            ->orderByRaw('CASE WHEN is_new = 1 THEN 0 ELSE 1 END')
+            ->orderBy('updated_at', 'desc')
             ->orderBy('created_at', 'desc')
-            ->take(12)
+            ->take(6)
             ->get();
 
         $banners = HomeSlider::get();
@@ -63,6 +64,16 @@ class PagesController extends Controller
         $featuredReviews = Review::with('product')
             ->where('featured', 1)
             ->get();
+
+        if ($featuredReviews->isEmpty()) {
+            $featuredReviews = Review::with('product')
+                ->where('rating', '>=', 4)
+                ->latest()
+                ->take(6)
+                ->get();
+        }
+
+        $reviewImages = \App\Models\ReviewImage::all();
 
         $topReviewed = Product::activeProducts()
             ->withCount([
@@ -83,7 +94,8 @@ class PagesController extends Controller
             'newArrivales',
             'trending',
             'topReviewed',
-            'featuredReviews'
+            'featuredReviews',
+            'reviewImages'
         ));
     }
 

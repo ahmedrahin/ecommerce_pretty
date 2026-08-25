@@ -11,7 +11,7 @@
                 >
         </fieldset>
 
-        <button type="submit" class="tf-btn animate-btn type-small-2" style="width: 155px;">
+        <button type="submit" class="tf-btn btn-white bg-white text-black animate-btn type-small-2" style="width: 155px;">
             <span wire:loading.remove wire:target="submit">Subscribe <i class="icon icon-arrow-right"></i></span>
             <span wire:loading wire:target="submit" class="formloader"></span>
         </button>

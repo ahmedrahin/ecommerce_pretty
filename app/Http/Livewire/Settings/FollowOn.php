@@ -13,29 +13,31 @@ class FollowOn extends Component
     public $youtube;
     public $whatsapp;
 
-    public function mount(){
-        $this->setting = Setting::find(1);
+    public function mount()
+    {
+        $this->setting = Setting::firstOrCreate(['id' => 1]);
 
-        $this->facebook = $this->setting->facebook;
-        $this->instagram = $this->setting->instagram;
-        $this->youtube = $this->setting->youtube;
-        $this->whatsapp = $this->setting->whatsapp;
+        $this->facebook  = $this->setting->facebook ?? null;
+        $this->instagram = $this->setting->instagram ?? null;
+        $this->youtube   = $this->setting->youtube ?? null;
+        $this->whatsapp  = $this->setting->whatsapp ?? null;
     }
 
     protected $rules = [
-        'facebook' => ['nullable', 'url', 'regex:/^(https?:\/\/)?(www\.)?facebook\.com\/[a-zA-Z0-9(\.\?)?]/'],
+        'facebook'  => ['nullable', 'url', 'regex:/^(https?:\/\/)?(www\.)?facebook\.com\/[a-zA-Z0-9(\.\?)?]/'],
         'instagram' => ['nullable', 'url', 'regex:/^(https?:\/\/)?(www\.)?instagram\.com\/[a-zA-Z0-9(_\.\?)?]/'],
         // 'youtube' => ['nullable', 'url', 'regex:/^(https?:\/\/)?(www\.)?youtube\.com\/(channel|c|user)\/[a-zA-Z0-9_\-]+/'],
     ];
 
-    public function update($id = 1){
+    public function update($id = 1)
+    {
         $this->validate();
-        $updateData = Setting::find($id);
+        $updateData = Setting::firstOrCreate(['id' => $id]);
         $updateData->update([
-            'facebook' => $this->facebook ?? null,
+            'facebook'  => $this->facebook ?? null,
             'instagram' => $this->instagram ?? null,
-            'youtube' => $this->youtube ?? null,
-            'whatsapp' => $this->whatsapp ?? null,
+            'youtube'   => $this->youtube ?? null,
+            'whatsapp'  => $this->whatsapp ?? null,
         ]);
 
         $this->emit('success', __('Follow on settings Updated successfully.'));

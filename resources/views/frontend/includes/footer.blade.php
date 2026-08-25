@@ -1,4 +1,4 @@
-<footer class="tf-footer style-4">
+<footer class="tf-footer style-color-white bg-black">
     <div class="container d-flex">
         <span class="br-line"></span>
     </div>
@@ -30,7 +30,7 @@
                                 </li>
                             </ul>
                             <div class="social-wrap">
-                                <ul class="tf-social-icon">
+                                <ul class="tf-social-icon style-2">
                                     @if (!empty(config('app.facebook')))
                                         <li>
                                             <a href="{{ config('app.facebook') }}" target="_blank" class="social-facebook">

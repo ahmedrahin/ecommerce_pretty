@@ -57,17 +57,6 @@
                     $product->is_featured == 1 ? 'checked' : '' }}>
                 <label for="is_featured" class="form-check-label">set as featured product</label>
             </div>
-
-            <div class="form-check form-check-custom form-check-solid mb-2">
-                <input class="form-check-input" type="checkbox" id="preorder" name="preorder" value="1" {{
-                    $product->pre_order == 1 ? 'checked' : '' }}>
-                <label for="preorder" class="form-check-label">set as up coming product</label>
-            </div>
-            <div class="form-check form-check-custom form-check-solid mb-2">
-                <input class="form-check-input" type="checkbox" id="stock_out" name="stock_out" value="1" {{
-                    $product->stock_out == 1 ? 'checked' : '' }}>
-                <label for="stock_out" class="form-check-label">set as stock out</label>
-            </div>
         </div>
 
     </div>

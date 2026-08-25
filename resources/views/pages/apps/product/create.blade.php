@@ -180,19 +180,24 @@
                             $('#errors-msgs').empty();
                             $('#errors-msgs').css('display', 'none')
 
+                            var productId = response.product;
+                            var detailsUrl = "{{ route('product-management.show', ':id') }}".replace(':id', productId);
+
                             // Replace alert with SweetAlert
                             Swal.fire({
                                 text: response.message,
                                 icon: 'success',
                                 buttonsStyling: false,
-                                confirmButtonText: 'OK',
+                                confirmButtonText: 'View',
                                 customClass: {
                                     confirmButton: 'btn btn-primary'
                                 }
+                            }).then(function(result) {
+                                if (result.isConfirmed) {
+                                    window.location.href = detailsUrl;
+                                }
                             });
 
-                            var productId = response.product;
-                            
                             window.resetGalleryImages();
 
                             // Optionally, reinitialize the repeater if needed
